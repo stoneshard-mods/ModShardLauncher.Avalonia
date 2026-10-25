@@ -1,0 +1,21 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="using:ModShardLauncher.GUI.Services"
+        x:Class="ModShardLauncher.GUI.Views.MessageDialog"
+        Width="460"
+        SizeToContent="Height"
+        MinHeight="180"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        ShowInTaskbar="False">
+
+  <StackPanel Margin="20" Spacing="14">
+    <TextBlock Name="TitleText" Classes="h2" TextWrapping="Wrap" />
+    <TextBlock Name="MessageText" Classes="subtitle" TextWrapping="Wrap" />
+
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+      <Button Name="CancelButton" Content="{loc:Tr DialogCancel}" Click="Cancel_Click" IsVisible="False" />
+      <Button Content="{loc:Tr DialogOk}" Click="Ok_Click" Classes="primary" />
+    </StackPanel>
+  </StackPanel>
+</Window>

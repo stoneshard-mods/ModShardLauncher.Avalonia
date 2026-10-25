@@ -1,0 +1,83 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="using:ModShardLauncher.GUI.Services"
+             x:Class="ModShardLauncher.GUI.Views.ModsView">
+
+  <Grid RowDefinitions="Auto,Auto,*">
+
+    <Grid ColumnDefinitions="*,Auto">
+      <StackPanel Spacing="4">
+        <TextBlock Text="{Binding ModsTitle}" Classes="h1" />
+        <TextBlock Text="{Binding CountText}" Classes="subtitle" />
+      </StackPanel>
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+        <Button Content="{Binding ReloadLabel}" Command="{Binding ReloadCommand}" />
+        <Button Content="{Binding PatchLabel}" Command="{Binding PatchAndSaveCommand}" Classes="primary" />
+      </StackPanel>
+    </Grid>
+
+    <Border Grid.Row="1" Classes="card" Margin="0,12,0,0" Padding="12"
+            Background="#241A1A" BorderBrush="#5A2A2A"
+            IsVisible="{Binding HasLoadErrors}">
+      <StackPanel Spacing="4">
+        <TextBlock Text="{loc:Tr ModsLoadErrors}" Classes="section" Foreground="{DynamicResource Danger}" />
+        <TextBlock Text="{Binding LoadErrorsText}" Classes="caption" />
+      </StackPanel>
+    </Border>
+
+    <ScrollViewer Grid.Row="2" Margin="0,12,0,0" HorizontalScrollBarVisibility="Disabled">
+      <StackPanel>
+
+        <ItemsControl ItemsSource="{Binding Mods}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Border Classes="card" Margin="0,0,0,8" Padding="12">
+                <Grid ColumnDefinitions="56,*,Auto" ColumnSpacing="12">
+
+                  <Border Width="48" Height="48" CornerRadius="8"
+                          Background="{DynamicResource SurfaceAlt}" VerticalAlignment="Top">
+                    <Panel>
+                      <TextBlock Text="?" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                 Foreground="{DynamicResource TextMuted}" IsVisible="{Binding !HasIcon}" />
+                      <Image Source="{Binding Icon}" Stretch="Uniform" IsVisible="{Binding HasIcon}" />
+                    </Panel>
+                  </Border>
+
+                  <StackPanel Grid.Column="1" Spacing="3">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="14" />
+                      <Border Background="{DynamicResource SurfaceAlt}" CornerRadius="4" Padding="6,1">
+                        <TextBlock Text="{Binding Version}" Classes="caption" />
+                      </Border>
+                    </StackPanel>
+                    <TextBlock Text="{Binding Author}" Classes="caption" />
+                    <TextBlock Text="{Binding Description}" Classes="caption"
+                               TextTrimming="CharacterEllipsis" MaxLines="2" />
+                  </StackPanel>
+
+                  <StackPanel Grid.Column="2" Spacing="6" VerticalAlignment="Center" MinWidth="110">
+                    <CheckBox IsChecked="{Binding Enabled, Mode=TwoWay}"
+                              Content="{loc:Tr ModsEnable}"
+                              HorizontalAlignment="Right" />
+                    <TextBlock Text="{Binding StatusText}" Foreground="{Binding StatusBrush}"
+                               Classes="caption" HorizontalAlignment="Right" />
+                  </StackPanel>
+
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <Border Classes="card" IsVisible="{Binding !HasMods}">
+          <StackPanel Spacing="6" HorizontalAlignment="Center" Margin="0,24">
+            <TextBlock Text="{Binding EmptyText}" Classes="subtitle" HorizontalAlignment="Center" />
+            <TextBlock Text="{loc:Tr ModsEmptyHint}" Classes="caption" HorizontalAlignment="Center" />
+          </StackPanel>
+        </Border>
+
+      </StackPanel>
+    </ScrollViewer>
+
+  </Grid>
+</UserControl>

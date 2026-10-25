@@ -1,0 +1,35 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="using:ModShardLauncher.GUI.Services"
+             x:Class="ModShardLauncher.GUI.Views.LogPanel">
+
+  <Border Background="{DynamicResource Surface}"
+          BorderBrush="{DynamicResource AppBorder}"
+          BorderThickness="0,1,0,0">
+    <Grid RowDefinitions="Auto,*">
+
+      <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="14,6,10,4">
+        <TextBlock Text="{Binding LogTitle}" Classes="section" VerticalAlignment="Center" />
+        <Button Grid.Column="1" Content="{Binding LogClearLabel}" Command="{Binding ClearLogCommand}"
+                Classes="ghost" Padding="8,3" />
+      </Grid>
+
+      <ListBox Grid.Row="1" Name="LogList" ItemsSource="{Binding LogEntries}"
+               Background="Transparent" Margin="8,0,8,8"
+               ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+        <ListBox.ItemTemplate>
+          <DataTemplate>
+            <Grid ColumnDefinitions="66,44,*">
+              <TextBlock Text="{Binding TimeText}" Classes="caption" FontFamily="Consolas" />
+              <TextBlock Grid.Column="1" Text="{Binding LevelText}" Foreground="{Binding LevelBrush}"
+                         Classes="caption" FontFamily="Consolas" />
+              <TextBlock Grid.Column="2" Text="{Binding Message}" Classes="caption"
+                         Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" />
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+
+    </Grid>
+  </Border>
+</UserControl>

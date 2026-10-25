@@ -1,0 +1,50 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="using:ModShardLauncher.GUI.Services"
+             x:Class="ModShardLauncher.GUI.Views.HomeView">
+
+  <ScrollViewer>
+    <StackPanel Spacing="16" MaxWidth="980" HorizontalAlignment="Left">
+
+      <StackPanel Spacing="4">
+        <TextBlock Text="{loc:Tr HomeTitle}" Classes="h1" />
+        <TextBlock Text="{loc:Tr HomeSubtitle}" Classes="subtitle" />
+      </StackPanel>
+
+      <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="12">
+        <Border Grid.Column="0" Classes="stat">
+          <StackPanel Spacing="4">
+            <TextBlock Text="{loc:Tr HomeStatsData}" Classes="section" />
+            <TextBlock Text="{Binding Main.DataFileDisplay}" FontSize="15" TextTrimming="CharacterEllipsis" />
+          </StackPanel>
+        </Border>
+        <Border Grid.Column="1" Classes="stat">
+          <StackPanel Spacing="4">
+            <TextBlock Text="{loc:Tr HomeStatsMods}" Classes="section" />
+            <TextBlock Text="{Binding Main.ModsCountDisplay}" FontSize="15" />
+          </StackPanel>
+        </Border>
+        <Border Grid.Column="2" Classes="stat">
+          <StackPanel Spacing="4">
+            <TextBlock Text="{loc:Tr HomeStatsEnabled}" Classes="section" />
+            <TextBlock Text="{Binding Main.EnabledCountDisplay}" FontSize="15" />
+          </StackPanel>
+        </Border>
+        <Border Grid.Column="3" Classes="stat">
+          <StackPanel Spacing="4">
+            <TextBlock Text="{loc:Tr HomeStatsSources}" Classes="section" />
+            <TextBlock Text="{Binding Main.SourcesCountDisplay}" FontSize="15" />
+          </StackPanel>
+        </Border>
+      </Grid>
+
+      <Border Classes="card">
+        <StackPanel Spacing="6">
+          <TextBlock Text="{loc:Tr HomeHint}" Classes="section" />
+          <TextBlock Text="{loc:Tr HomeHintBody}" Classes="caption" />
+        </StackPanel>
+      </Border>
+
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

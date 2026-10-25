@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="CompileFailed" xml:space="preserve"><value>Compilation of {0} failed. Check the log for details.</value></data>
+  <data name="ModStatusPatched" xml:space="preserve"><value>patched</value></data>
+  <data name="SourcesCompile" xml:space="preserve"><value>Compile</value></data>
+  <data name="ToolbarLogs" xml:space="preserve"><value>Log</value></data>
+  <data name="AboutText" xml:space="preserve"><value>ModShardLauncher {0}
+UndertaleModTool {1}
+
+A community tool for Stoneshard modding.
+Not affiliated with Ink Stains Games.</value></data>
+  <data name="ModsReload" xml:space="preserve"><value>Reload</value></data>
+  <data name="HomeStatsData" xml:space="preserve"><value>Game data</value></data>
+  <data name="StatusPatching" xml:space="preserve"><value>Patching mods…</value></data>
+  <data name="DialogOpenLogs" xml:space="preserve"><value>Open logs</value></data>
+  <data name="CommonOn" xml:space="preserve"><value>On</value></data>
+  <data name="StatusLoading" xml:space="preserve"><value>Loading game data…</value></data>
+  <data name="HomeTitle" xml:space="preserve"><value>Welcome to ModShardLauncher</value></data>
+  <data name="LogClear" xml:space="preserve"><value>Clear</value></data>
+  <data name="SettingsLogsFolder" xml:space="preserve"><value>Logs</value></data>
+  <data name="MenuOpenData" xml:space="preserve"><value>Open data.win…</value></data>
+  <data name="ToolbarPatch" xml:space="preserve"><value>Patch and Save</value></data>
+  <data name="HomeStatsEnabled" xml:space="preserve"><value>Enabled</value></data>
+  <data name="MenuShowSources" xml:space="preserve"><value>Mod sources</value></data>
+  <data name="DialogCopy" xml:space="preserve"><value>Copy</value></data>
+  <data name="MenuTools" xml:space="preserve"><value>Tools</value></data>
+  <data name="StatusPatchFailed" xml:space="preserve"><value>Patching failed</value></data>
+  <data name="ModsEnable" xml:space="preserve"><value>Enable</value></data>
+  <data name="HomeStatsSourcesValue" xml:space="preserve"><value>{0} projects</value></data>
+  <data name="HomeStatsMods" xml:space="preserve"><value>Installed mods</value></data>
+  <data name="MenuAbout" xml:space="preserve"><value>About</value></data>
+  <data name="SettingsLogger" xml:space="preserve"><value>Logging</value></data>
+  <data name="DialogCancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="NavHome" xml:space="preserve"><value>Home</value></data>
+  <data name="StatusBarData" xml:space="preserve"><value>Data:</value></data>
+  <data name="HomeSubtitle" xml:space="preserve"><value>Load a vanilla data.win, enable the mods you want, then patch and save.</value></data>
+  <data name="StatusSaved" xml:space="preserve"><value>Saved {0}</value></data>
+  <data name="MenuShowMods" xml:space="preserve"><value>Mod list</value></data>
+  <data name="SettingsSourcesFolder" xml:space="preserve"><value>Mod sources</value></data>
+  <data name="SettingsLoggerHint" xml:space="preserve"><value>Shows debug-level messages when enabled. Informational logs, including the whole patching process, are always recorded.</value></data>
+  <data name="ModsTitle" xml:space="preserve"><value>Mods</value></data>
+  <data name="LoadDataWarning" xml:space="preserve"><value>Please load a game data file first!</value></data>
+  <data name="HomeStatsEnabledValue" xml:space="preserve"><value>{0} enabled</value></data>
+  <data name="SourcesTitle" xml:space="preserve"><value>Mod sources</value></data>
+  <data name="SettingsAbout" xml:space="preserve"><value>About</value></data>
+  <data name="ToolbarReload" xml:space="preserve"><value>Reload</value></data>
+  <data name="ModsSubtitle" xml:space="preserve"><value>Packed .sml mods found in the Mods folder.</value></data>
+  <data name="MenuMods" xml:space="preserve"><value>Mods</value></data>
+  <data name="AppSubtitle" xml:space="preserve"><value>Stoneshard mod manager and modding toolkit.</value></data>
+  <data name="SettingsTitle" xml:space="preserve"><value>Settings</value></data>
+  <data name="ModsEmptyHint" xml:space="preserve"><value>Copy .sml files into the Mods folder and reload.</value></data>
+  <data name="LogTitle" xml:space="preserve"><value>Log</value></data>
+  <data name="ModsCount" xml:space="preserve"><value>{0} mods</value></data>
+  <data name="StatusReady" xml:space="preserve"><value>Ready</value></data>
+  <data name="StatusFailed" xml:space="preserve"><value>Operation failed</value></data>
+  <data name="SettingsLanguage" xml:space="preserve"><value>Language</value></data>
+  <data name="DialogErrorTitle" xml:space="preserve"><value>Something went wrong</value></data>
+  <data name="SettingsOpen" xml:space="preserve"><value>Open</value></data>
+  <data name="LogEmpty" xml:space="preserve"><value>No log entries yet.</value></data>
+  <data name="MenuOpenLogs" xml:space="preserve"><value>Open logs folder</value></data>
+  <data name="HomeHint" xml:space="preserve"><value>Workflow</value></data>
+  <data name="SettingsModsFolder" xml:space="preserve"><value>Mods</value></data>
+  <data name="NavMods" xml:space="preserve"><value>Mods</value></data>
+  <data name="SourcesSubtitle" xml:space="preserve"><value>C# projects found in the ModSources folder. Compile them into .sml packages.</value></data>
+  <data name="SourcesOpenFolder" xml:space="preserve"><value>Open folder</value></data>
+  <data name="MenuSaveAs" xml:space="preserve"><value>Patch and Save As…</value></data>
+  <data name="HomeNoData" xml:space="preserve"><value>No data file loaded</value></data>
+  <data name="NavSources" xml:space="preserve"><value>Mod Sources</value></data>
+  <data name="StatusEnabledCount" xml:space="preserve"><value>{0} enabled</value></data>
+  <data name="AppTitle" xml:space="preserve"><value>ModShardLauncher</value></data>
+  <data name="MenuExit" xml:space="preserve"><value>Exit</value></data>
+  <data name="StatusCompiling" xml:space="preserve"><value>Compiling mod…</value></data>
+  <data name="StatusCompiled" xml:space="preserve"><value>Compiled {0}</value></data>
+  <data name="HomeHintBody" xml:space="preserve"><value>1. Open the vanilla data.win from the modbranch beta. 2. Enable the mods you want. 3. Patch and Save to a new file. 4. Select that file in Stoneshard.</value></data>
+  <data name="StatusModsCount" xml:space="preserve"><value>{0} mods</value></data>
+  <data name="SourcesEmpty" xml:space="preserve"><value>No mod sources found</value></data>
+  <data name="ToolbarOpen" xml:space="preserve"><value>Open data.win</value></data>
+  <data name="StatusReloading" xml:space="preserve"><value>Reloading mods…</value></data>
+  <data name="HomeStatsModsValue" xml:space="preserve"><value>{0} mods</value></data>
+  <data name="ModsPatchSave" xml:space="preserve"><value>Patch and Save</value></data>
+  <data name="ModStatusPatching" xml:space="preserve"><value>patching…</value></data>
+  <data name="MenuReload" xml:space="preserve"><value>Reload mods</value></data>
+  <data name="SourcesCount" xml:space="preserve"><value>{0} projects</value></data>
+  <data name="SettingsPaths" xml:space="preserve"><value>Folders</value></data>
+  <data name="MenuHelp" xml:space="preserve"><value>Help</value></data>
+  <data name="CommonOff" xml:space="preserve"><value>Off</value></data>
+  <data name="DialogOk" xml:space="preserve"><value>OK</value></data>
+  <data name="HomeStatsSources" xml:space="preserve"><value>Mod sources</value></data>
+  <data name="DialogClose" xml:space="preserve"><value>Close</value></data>
+  <data name="ModsLoadErrors" xml:space="preserve"><value>Some mods could not be loaded</value></data>
+  <data name="ModStatusIdle" xml:space="preserve"><value>idle</value></data>
+  <data name="SourcesEmptyHint" xml:space="preserve"><value>Create a mod project inside ModSources, then reload.</value></data>
+  <data name="AboutTitle" xml:space="preserve"><value>About ModShardLauncher</value></data>
+  <data name="StatusLoaded" xml:space="preserve"><value>Loaded {0}</value></data>
+  <data name="MenuFile" xml:space="preserve"><value>File</value></data>
+  <data name="ModsEmpty" xml:space="preserve"><value>No mods found</value></data>
+  <data name="MenuOpenModsFolder" xml:space="preserve"><value>Open Mods folder</value></data>
+  <data name="MenuSettings" xml:space="preserve"><value>Settings</value></data>
+  <data name="SettingsLanguageHint" xml:space="preserve"><value>Auto follows the Windows display language; languages without a translation fall back to English.</value></data>
+  <data name="SaveOverwriteSourceError" xml:space="preserve"><value>Choose a different output file: overwriting the loaded vanilla data.win is not allowed.</value></data>
+  <data name="SettingsDataFolder" xml:space="preserve"><value>User data</value></data>
+  <data name="SettingsExport" xml:space="preserve"><value>Export manifests</value></data>
+  <data name="SettingsExportHint" xml:space="preserve"><value>When enabled, opening data.win also writes item, weapon and armor CSV lists to the export folder. Off by default.</value></data>
+</root>

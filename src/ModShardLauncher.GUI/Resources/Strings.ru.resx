@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="CompileFailed" xml:space="preserve"><value>Компиляция {0} не удалась. Смотрите журнал.</value></data>
+  <data name="ModStatusPatched" xml:space="preserve"><value>готово</value></data>
+  <data name="SourcesCompile" xml:space="preserve"><value>Компилировать</value></data>
+  <data name="ToolbarLogs" xml:space="preserve"><value>Журнал</value></data>
+  <data name="AboutText" xml:space="preserve"><value>ModShardLauncher {0}
+UndertaleModTool {1}
+
+Инструмент сообщества для моддинга Stoneshard.
+Не связан с Ink Stains Games.</value></data>
+  <data name="ModsReload" xml:space="preserve"><value>Перезагрузить</value></data>
+  <data name="HomeStatsData" xml:space="preserve"><value>Данные игры</value></data>
+  <data name="StatusPatching" xml:space="preserve"><value>Патчинг модов…</value></data>
+  <data name="DialogOpenLogs" xml:space="preserve"><value>Открыть журнал</value></data>
+  <data name="CommonOn" xml:space="preserve"><value>Вкл</value></data>
+  <data name="StatusLoading" xml:space="preserve"><value>Загрузка данных…</value></data>
+  <data name="HomeTitle" xml:space="preserve"><value>Добро пожаловать в ModShardLauncher</value></data>
+  <data name="LogClear" xml:space="preserve"><value>Очистить</value></data>
+  <data name="SettingsLogsFolder" xml:space="preserve"><value>Журналы</value></data>
+  <data name="MenuOpenData" xml:space="preserve"><value>Открыть data.win…</value></data>
+  <data name="ToolbarPatch" xml:space="preserve"><value>Патч и сохранить</value></data>
+  <data name="HomeStatsEnabled" xml:space="preserve"><value>Включено</value></data>
+  <data name="MenuShowSources" xml:space="preserve"><value>Исходники модов</value></data>
+  <data name="DialogCopy" xml:space="preserve"><value>Копировать</value></data>
+  <data name="MenuTools" xml:space="preserve"><value>Инструменты</value></data>
+  <data name="StatusPatchFailed" xml:space="preserve"><value>Патчинг не удался</value></data>
+  <data name="ModsEnable" xml:space="preserve"><value>Включить</value></data>
+  <data name="HomeStatsSourcesValue" xml:space="preserve"><value>{0} проектов</value></data>
+  <data name="HomeStatsMods" xml:space="preserve"><value>Установленные моды</value></data>
+  <data name="MenuAbout" xml:space="preserve"><value>О программе</value></data>
+  <data name="SettingsLogger" xml:space="preserve"><value>Журнал</value></data>
+  <data name="DialogCancel" xml:space="preserve"><value>Отмена</value></data>
+  <data name="NavHome" xml:space="preserve"><value>Главная</value></data>
+  <data name="StatusBarData" xml:space="preserve"><value>Данные:</value></data>
+  <data name="HomeSubtitle" xml:space="preserve"><value>Загрузите оригинальный data.win, включите моды, затем пропатчите и сохраните.</value></data>
+  <data name="StatusSaved" xml:space="preserve"><value>Сохранено {0}</value></data>
+  <data name="MenuShowMods" xml:space="preserve"><value>Список модов</value></data>
+  <data name="SettingsSourcesFolder" xml:space="preserve"><value>Исходники</value></data>
+  <data name="SettingsLoggerHint" xml:space="preserve"><value>Включает отладочные сообщения. Информационные сообщения, включая весь процесс патчинга, записываются всегда.</value></data>
+  <data name="ModsTitle" xml:space="preserve"><value>Моды</value></data>
+  <data name="LoadDataWarning" xml:space="preserve"><value>Сначала загрузите файл данных!</value></data>
+  <data name="HomeStatsEnabledValue" xml:space="preserve"><value>{0} включено</value></data>
+  <data name="SourcesTitle" xml:space="preserve"><value>Исходники модов</value></data>
+  <data name="SettingsAbout" xml:space="preserve"><value>О программе</value></data>
+  <data name="ToolbarReload" xml:space="preserve"><value>Перезагрузить</value></data>
+  <data name="ModsSubtitle" xml:space="preserve"><value>Пакеты .sml из папки Mods.</value></data>
+  <data name="MenuMods" xml:space="preserve"><value>Моды</value></data>
+  <data name="AppSubtitle" xml:space="preserve"><value>Менеджер модов и инструмент для моддинга Stoneshard.</value></data>
+  <data name="SettingsTitle" xml:space="preserve"><value>Настройки</value></data>
+  <data name="ModsEmptyHint" xml:space="preserve"><value>Скопируйте .sml в папку Mods и перезагрузите.</value></data>
+  <data name="LogTitle" xml:space="preserve"><value>Журнал</value></data>
+  <data name="ModsCount" xml:space="preserve"><value>{0} модов</value></data>
+  <data name="StatusReady" xml:space="preserve"><value>Готово</value></data>
+  <data name="StatusFailed" xml:space="preserve"><value>Ошибка</value></data>
+  <data name="SettingsLanguage" xml:space="preserve"><value>Язык</value></data>
+  <data name="DialogErrorTitle" xml:space="preserve"><value>Ошибка</value></data>
+  <data name="SettingsOpen" xml:space="preserve"><value>Открыть</value></data>
+  <data name="LogEmpty" xml:space="preserve"><value>Журнал пуст.</value></data>
+  <data name="MenuOpenLogs" xml:space="preserve"><value>Открыть журнал</value></data>
+  <data name="HomeHint" xml:space="preserve"><value>Порядок работы</value></data>
+  <data name="SettingsModsFolder" xml:space="preserve"><value>Моды</value></data>
+  <data name="NavMods" xml:space="preserve"><value>Моды</value></data>
+  <data name="SourcesSubtitle" xml:space="preserve"><value>C# проекты из папки ModSources. Компилируются в .sml.</value></data>
+  <data name="SourcesOpenFolder" xml:space="preserve"><value>Открыть папку</value></data>
+  <data name="MenuSaveAs" xml:space="preserve"><value>Патч и сохранить как…</value></data>
+  <data name="HomeNoData" xml:space="preserve"><value>Файл данных не загружен</value></data>
+  <data name="NavSources" xml:space="preserve"><value>Исходники</value></data>
+  <data name="StatusEnabledCount" xml:space="preserve"><value>{0} включено</value></data>
+  <data name="AppTitle" xml:space="preserve"><value>ModShardLauncher</value></data>
+  <data name="MenuExit" xml:space="preserve"><value>Выход</value></data>
+  <data name="StatusCompiling" xml:space="preserve"><value>Компиляция…</value></data>
+  <data name="StatusCompiled" xml:space="preserve"><value>Скомпилировано {0}</value></data>
+  <data name="HomeHintBody" xml:space="preserve"><value>1. Откройте оригинальный data.win из ветки modbranch. 2. Включите нужные моды. 3. Пропатчите и сохраните в новый файл. 4. Выберите этот файл в Stoneshard.</value></data>
+  <data name="StatusModsCount" xml:space="preserve"><value>{0} модов</value></data>
+  <data name="SourcesEmpty" xml:space="preserve"><value>Исходники не найдены</value></data>
+  <data name="ToolbarOpen" xml:space="preserve"><value>Открыть data.win</value></data>
+  <data name="StatusReloading" xml:space="preserve"><value>Перезагрузка модов…</value></data>
+  <data name="HomeStatsModsValue" xml:space="preserve"><value>{0} модов</value></data>
+  <data name="ModsPatchSave" xml:space="preserve"><value>Патч и сохранить</value></data>
+  <data name="ModStatusPatching" xml:space="preserve"><value>патч…</value></data>
+  <data name="MenuReload" xml:space="preserve"><value>Перезагрузить моды</value></data>
+  <data name="SourcesCount" xml:space="preserve"><value>{0} проектов</value></data>
+  <data name="SettingsPaths" xml:space="preserve"><value>Папки</value></data>
+  <data name="MenuHelp" xml:space="preserve"><value>Справка</value></data>
+  <data name="CommonOff" xml:space="preserve"><value>Выкл</value></data>
+  <data name="DialogOk" xml:space="preserve"><value>ОК</value></data>
+  <data name="HomeStatsSources" xml:space="preserve"><value>Исходники</value></data>
+  <data name="DialogClose" xml:space="preserve"><value>Закрыть</value></data>
+  <data name="ModsLoadErrors" xml:space="preserve"><value>Некоторые моды не загрузились</value></data>
+  <data name="ModStatusIdle" xml:space="preserve"><value>ожидание</value></data>
+  <data name="SourcesEmptyHint" xml:space="preserve"><value>Создайте проект в ModSources и перезагрузите.</value></data>
+  <data name="AboutTitle" xml:space="preserve"><value>О ModShardLauncher</value></data>
+  <data name="StatusLoaded" xml:space="preserve"><value>Загружено {0}</value></data>
+  <data name="MenuFile" xml:space="preserve"><value>Файл</value></data>
+  <data name="ModsEmpty" xml:space="preserve"><value>Моды не найдены</value></data>
+  <data name="MenuOpenModsFolder" xml:space="preserve"><value>Открыть папку модов</value></data>
+  <data name="MenuSettings" xml:space="preserve"><value>Настройки</value></data>
+  <data name="SettingsLanguageHint" xml:space="preserve"><value>Авто использует язык Windows; при отсутствии перевода используется английский.</value></data>
+  <data name="SaveOverwriteSourceError" xml:space="preserve"><value>Выберите другой файл: перезапись загруженного исходного data.win запрещена.</value></data>
+  <data name="SettingsDataFolder" xml:space="preserve"><value>Данные пользователя</value></data>
+  <data name="SettingsExport" xml:space="preserve"><value>Экспорт списков</value></data>
+  <data name="SettingsExportHint" xml:space="preserve"><value>Если включено, при открытии data.win создаются CSV-списки предметов, оружия и брони в папке export. По умолчанию выключено.</value></data>
+</root>

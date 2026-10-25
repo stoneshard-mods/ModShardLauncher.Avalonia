@@ -1,0 +1,52 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="using:ModShardLauncher.GUI.Services"
+             x:Class="ModShardLauncher.GUI.Views.ModSourcesView">
+
+  <Grid RowDefinitions="Auto,*">
+
+    <Grid ColumnDefinitions="*,Auto">
+      <StackPanel Spacing="4">
+        <TextBlock Text="{Binding SourcesTitle}" Classes="h1" />
+        <TextBlock Text="{Binding SourcesSubtitle}" Classes="subtitle" />
+      </StackPanel>
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+        <TextBlock Text="{Binding CountText}" Classes="caption" VerticalAlignment="Center" />
+        <Button Content="{loc:Tr ToolbarReload}" Command="{Binding ReloadCommand}" />
+      </StackPanel>
+    </Grid>
+
+    <ScrollViewer Grid.Row="1" Margin="0,12,0,0" HorizontalScrollBarVisibility="Disabled">
+      <StackPanel>
+
+        <ItemsControl ItemsSource="{Binding Sources}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Border Classes="card" Margin="0,0,0,8" Padding="12">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                  <StackPanel Spacing="3">
+                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="14" />
+                    <TextBlock Text="{Binding Folder}" Classes="caption" TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                  <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <Button Content="{Binding OpenLabel}" Command="{Binding OpenFolderCommand}" Classes="ghost" />
+                    <Button Content="{Binding CompileLabel}" Command="{Binding CompileCommand}" Classes="primary" />
+                  </StackPanel>
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <Border Classes="card" IsVisible="{Binding !HasSources}">
+          <StackPanel Spacing="6" HorizontalAlignment="Center" Margin="0,24">
+            <TextBlock Text="{Binding EmptyText}" Classes="subtitle" HorizontalAlignment="Center" />
+            <TextBlock Text="{loc:Tr SourcesEmptyHint}" Classes="caption" HorizontalAlignment="Center" />
+          </StackPanel>
+        </Border>
+
+      </StackPanel>
+    </ScrollViewer>
+
+  </Grid>
+</UserControl>

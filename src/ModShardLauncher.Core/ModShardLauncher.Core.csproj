@@ -1,0 +1,60 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- The assembly name is a compatibility contract with already published .sml mods:
+         their assembly references point at "ModShardLauncher". Do not rename it. -->
+    <AssemblyName>ModShardLauncher</AssemblyName>
+    <RootNamespace>ModShardLauncher</RootNamespace>
+    <!-- Legacy mods were compiled against ModShardLauncher 1.0.0.0 (the WPF build only set
+         FileVersion). Keep that assembly identity so their references bind without help. -->
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <OutputType>Library</OutputType>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ModShardPackerReference" Version="1.0.3" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="Serilog" Version="3.1.1" />
+    <!-- UndertaleModLib.dll (frozen) was built against SharpZipLib 1.4.2; shipping an older
+         copy caused MSB3277 and risked MissingMethodException at runtime. -->
+    <PackageReference Include="SharpZipLib" Version="1.4.2" />
+    <PackageReference Include="SkiaSharp" Version="3.119.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The tests assert the weapon table schema and the row the API builds for it. -->
+    <InternalsVisibleTo Include="ModShardLauncher.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- UndertaleModTool binaries are frozen. UndertaleModTool.dll is kept in the output for mods that
+         still reference its types at runtime, but launcher code must not call its WPF-dependent
+         members (see docs/architecture.md, "旧模组二进制兼容层"). -->
+    <Reference Include="UndertaleModLib">
+      <HintPath>Reference\UndertaleModLib.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="UndertaleModTool">
+      <HintPath>Reference\UndertaleModTool.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\Codes\**\*.gml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Reference assemblies used by the in-process Roslyn compiler for mod projects.
+         They are copied next to the executable (not into a sub folder) because the compiler
+         resolves netstandard/System.* from the application directory. -->
+    <Content Include="ModReference\*.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </Content>
+  </ItemGroup>
+
+</Project>

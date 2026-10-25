@@ -1,0 +1,96 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="using:ModShardLauncher.GUI.Services"
+             x:Class="ModShardLauncher.GUI.Views.SettingsView">
+
+  <ScrollViewer>
+    <StackPanel Spacing="14" MaxWidth="820" HorizontalAlignment="Left">
+
+      <TextBlock Text="{Binding SettingsTitle}" Classes="h1" />
+
+      <Border Classes="card">
+        <StackPanel Spacing="10">
+          <TextBlock Text="{Binding LanguageLabel}" Classes="section" />
+          <ComboBox ItemsSource="{Binding Languages}"
+                    SelectedItem="{Binding SelectedLanguage, Mode=TwoWay}"
+                    Width="260" HorizontalAlignment="Left">
+            <ComboBox.ItemTemplate>
+              <DataTemplate>
+                <TextBlock Text="{Binding Display}" />
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+          <TextBlock Text="{Binding LanguageHint}" Classes="caption" />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card">
+        <StackPanel Spacing="8">
+          <TextBlock Text="{Binding LoggerLabel}" Classes="section" />
+          <ToggleSwitch IsChecked="{Binding EnableLogger, Mode=TwoWay}"
+                        OnContent="{loc:Tr CommonOn}" OffContent="{loc:Tr CommonOff}" />
+          <TextBlock Text="{Binding LoggerHint}" Classes="caption" />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card">
+        <StackPanel Spacing="8">
+          <TextBlock Text="{Binding ExportLabel}" Classes="section" />
+          <ToggleSwitch IsChecked="{Binding ExportManifests, Mode=TwoWay}"
+                        OnContent="{loc:Tr CommonOn}" OffContent="{loc:Tr CommonOff}" />
+          <TextBlock Text="{Binding ExportHint}" Classes="caption" />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card">
+        <StackPanel Spacing="12">
+          <TextBlock Text="{Binding FoldersLabel}" Classes="section" />
+
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel Spacing="2">
+              <TextBlock Text="{Binding DataFolderLabel}" />
+              <TextBlock Text="{Binding DataFolder}" Classes="caption" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+            <Button Grid.Column="1" Content="{Binding OpenLabel}" Command="{Binding OpenDataFolderCommand}" />
+          </Grid>
+
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel Spacing="2">
+              <TextBlock Text="{Binding ModsFolderLabel}" />
+              <TextBlock Text="{Binding ModsFolder}" Classes="caption" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+            <Button Grid.Column="1" Content="{Binding OpenLabel}" Command="{Binding OpenModsFolderCommand}" />
+          </Grid>
+
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel Spacing="2">
+              <TextBlock Text="{Binding SourcesFolderLabel}" />
+              <TextBlock Text="{Binding SourcesFolder}" Classes="caption" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+            <Button Grid.Column="1" Content="{Binding OpenLabel}" Command="{Binding OpenSourcesFolderCommand}" />
+          </Grid>
+
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel Spacing="2">
+              <TextBlock Text="{Binding LogsFolderLabel}" />
+              <TextBlock Text="{Binding LogsFolder}" Classes="caption" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+            <Button Grid.Column="1" Content="{Binding OpenLabel}" Command="{Binding OpenLogsFolderCommand}" />
+          </Grid>
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card">
+        <Grid ColumnDefinitions="*,Auto">
+          <StackPanel Spacing="4">
+            <TextBlock Text="{Binding AboutLabel}" Classes="section" />
+            <TextBlock Text="{Binding VersionText}" Classes="subtitle" />
+            <TextBlock Text="{Binding UtmtText}" Classes="caption" />
+          </StackPanel>
+          <Button Grid.Column="1" Content="{loc:Tr MenuAbout}" Command="{Binding ShowAboutCommand}" />
+        </Grid>
+      </Border>
+
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

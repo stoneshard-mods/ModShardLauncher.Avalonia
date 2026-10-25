@@ -1,0 +1,111 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="using:ModShardLauncher.GUI.Services"
+        xmlns:views="using:ModShardLauncher.GUI.Views"
+        x:Class="ModShardLauncher.GUI.Views.MainWindow"
+        Title="{loc:Tr AppTitle}"
+        Width="1200" Height="760"
+        MinWidth="980" MinHeight="620"
+        WindowStartupLocation="CenterScreen">
+
+  <Window.KeyBindings>
+    <KeyBinding Gesture="Ctrl+O" Command="{Binding OpenDataCommand}" />
+    <KeyBinding Gesture="Ctrl+S" Command="{Binding PatchAndSaveCommand}" />
+    <KeyBinding Gesture="F5" Command="{Binding ReloadModsCommand}" />
+  </Window.KeyBindings>
+
+  <Grid>
+    <DockPanel>
+
+      <Menu DockPanel.Dock="Top">
+        <MenuItem Header="{loc:Tr MenuFile}">
+          <MenuItem Header="{loc:Tr MenuOpenData}" Command="{Binding OpenDataCommand}" InputGesture="Ctrl+O" />
+          <MenuItem Header="{loc:Tr MenuSaveAs}" Command="{Binding PatchAndSaveCommand}" InputGesture="Ctrl+S" />
+          <Separator />
+          <MenuItem Header="{loc:Tr MenuExit}" Command="{Binding ExitCommand}" />
+        </MenuItem>
+        <MenuItem Header="{loc:Tr MenuMods}">
+          <MenuItem Header="{loc:Tr MenuShowMods}" Command="{Binding ShowModsCommand}" />
+          <MenuItem Header="{loc:Tr MenuShowSources}" Command="{Binding ShowSourcesCommand}" />
+          <Separator />
+          <MenuItem Header="{loc:Tr MenuReload}" Command="{Binding ReloadModsCommand}" InputGesture="F5" />
+        </MenuItem>
+        <MenuItem Header="{loc:Tr MenuTools}">
+          <MenuItem Header="{loc:Tr MenuOpenModsFolder}" Command="{Binding OpenModsFolderCommand}" />
+          <MenuItem Header="{loc:Tr MenuOpenLogs}" Command="{Binding OpenLogsFolderCommand}" />
+        </MenuItem>
+        <MenuItem Header="{loc:Tr MenuSettings}" Command="{Binding ShowSettingsCommand}" />
+        <MenuItem Header="{loc:Tr MenuHelp}">
+          <MenuItem Header="{loc:Tr MenuAbout}" Command="{Binding ShowAboutCommand}" />
+        </MenuItem>
+      </Menu>
+
+      <Border DockPanel.Dock="Top" Classes="toolbar">
+        <Grid ColumnDefinitions="*,Auto">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Content="{loc:Tr ToolbarOpen}" Command="{Binding OpenDataCommand}" Classes="primary" />
+            <Button Content="{loc:Tr ToolbarPatch}" Command="{Binding PatchAndSaveCommand}" />
+            <Button Content="{loc:Tr ToolbarReload}" Command="{Binding ReloadModsCommand}" />
+            <Button Content="{loc:Tr MenuOpenModsFolder}" Command="{Binding OpenModsFolderCommand}" Classes="ghost" />
+          </StackPanel>
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <Button Content="{loc:Tr ToolbarLogs}" Command="{Binding ToggleLogCommand}" Classes="ghost" />
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <Border DockPanel.Dock="Bottom" Classes="statusbar">
+        <Grid ColumnDefinitions="Auto,*,Auto">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <TextBlock Text="{loc:Tr StatusBarData}" Classes="caption" />
+            <TextBlock Text="{Binding DataFileDisplay}" Classes="caption" Foreground="{DynamicResource TextPrimary}" />
+          </StackPanel>
+          <TextBlock Grid.Column="1" Text="{Binding StatusText}" Classes="caption"
+                     HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" />
+          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="14">
+            <TextBlock Text="{Binding ModsStatusText}" Classes="caption" />
+            <TextBlock Text="{Binding EnabledStatusText}" Classes="caption" />
+            <TextBlock Text="{Binding VersionText}" Classes="caption" Foreground="{DynamicResource TextMuted}" />
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <Grid ColumnDefinitions="228,4,*">
+        <Border Grid.Column="0" Classes="sidebar">
+          <DockPanel Margin="10">
+            <StackPanel DockPanel.Dock="Top" Margin="6,12,6,20" Spacing="2">
+              <TextBlock Text="{loc:Tr AppTitle}" Classes="h2" />
+              <TextBlock Text="{loc:Tr AppSubtitle}" Classes="caption" />
+            </StackPanel>
+            <TextBlock DockPanel.Dock="Bottom" Text="{Binding VersionText}" Classes="caption" Margin="8,10,8,4" />
+            <ListBox ItemsSource="{Binding NavigationItems}"
+                     SelectedIndex="{Binding SelectedNavIndex, Mode=TwoWay}">
+              <ListBox.ItemTemplate>
+                <DataTemplate>
+                  <TextBlock Text="{Binding Title.Value}" Margin="14,9" FontSize="13" />
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </DockPanel>
+        </Border>
+
+        <GridSplitter Grid.Column="1" Background="Transparent" ResizeDirection="Columns" />
+
+        <Grid Grid.Column="2" RowDefinitions="*,Auto">
+          <ContentControl Grid.Row="0" Content="{Binding CurrentPage}" Margin="18" />
+          <views:LogPanel Grid.Row="1" Height="200" IsVisible="{Binding IsLogVisible}" />
+        </Grid>
+      </Grid>
+
+    </DockPanel>
+
+    <Border Background="#C0080B10" IsVisible="{Binding IsBusy}">
+      <Border Classes="card" Width="380" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <StackPanel Spacing="14">
+          <TextBlock Text="{Binding BusyText}" HorizontalAlignment="Center" FontSize="14" />
+          <ProgressBar IsIndeterminate="True" Height="4" />
+        </StackPanel>
+      </Border>
+    </Border>
+  </Grid>
+</Window>
