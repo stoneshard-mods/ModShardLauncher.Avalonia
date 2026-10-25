@@ -6,6 +6,12 @@ Unicode true
 !include "MUI2.nsh"
 !include "LogicLib.nsh"
 !include "FileFunc.nsh"
+!include "WinMessages.nsh"
+!include "StrFunc.nsh"
+
+; String helpers used when editing the per-user PATH value.
+${StrStr}
+${UnStrRep}
 
 ; ----- build inputs -------------------------------------------------------
 !ifndef APP_VERSION
@@ -106,6 +112,8 @@ LangString AppRunning     ${LANG_ENGLISH}   "ModShardLauncher is running. Close 
 LangString KeepUserData   ${LANG_ENGLISH}   "Keep your mods, mod sources, logs and settings? They are stored in %LOCALAPPDATA%\ModShardLauncher."
 LangString UninstallingOld ${LANG_ENGLISH}  "Removing the previous installation from:"
 LangString RunApp         ${LANG_ENGLISH}   "Launch ModShardLauncher"
+LangString SecCli         ${LANG_ENGLISH}   "Command line integration"
+LangString SecCliDesc     ${LANG_ENGLISH}   "Add the install folder to your user PATH and create msl.cmd, so msl compile / msl patch work in any terminal."
 
 LangString SecCore        ${LANG_SIMPCHINESE} "应用程序"
 LangString SecCoreDesc    ${LANG_SIMPCHINESE} "ModShardLauncher 图形界面、命令行、共享运行时与模组 API。"
@@ -115,6 +123,8 @@ LangString AppRunning     ${LANG_SIMPCHINESE} "ModShardLauncher 正在运行。�
 LangString KeepUserData   ${LANG_SIMPCHINESE} "是否保留模组、模组源码、日志和设置？它们保存在 %LOCALAPPDATA%\ModShardLauncher。"
 LangString UninstallingOld ${LANG_SIMPCHINESE} "正在移除旧版本，位置："
 LangString RunApp         ${LANG_SIMPCHINESE} "启动 ModShardLauncher"
+LangString SecCli         ${LANG_SIMPCHINESE} "命令行集成"
+LangString SecCliDesc     ${LANG_SIMPCHINESE} "把安装目录加入用户 PATH 并生成 msl.cmd，之后可在任意终端直接运行 msl compile / msl patch。"
 
 LangString SecCore        ${LANG_RUSSIAN}   "Приложение"
 LangString SecCoreDesc    ${LANG_RUSSIAN}   "Интерфейс ModShardLauncher, CLI, общая среда выполнения и API для модов."
@@ -124,8 +134,15 @@ LangString AppRunning     ${LANG_RUSSIAN}   "ModShardLauncher запущен. З
 LangString KeepUserData   ${LANG_RUSSIAN}   "Сохранить моды, исходники, журналы и настройки? Они хранятся в %LOCALAPPDATA%\ModShardLauncher."
 LangString UninstallingOld ${LANG_RUSSIAN}  "Удаление предыдущей установки из:"
 LangString RunApp         ${LANG_RUSSIAN}   "Запустить ModShardLauncher"
+LangString SecCli         ${LANG_RUSSIAN}   "Интеграция с командной строкой"
+LangString SecCliDesc     ${LANG_RUSSIAN}   "Добавить папку установки в пользовательский PATH и создать msl.cmd, чтобы msl compile / msl patch работали в любом терминале."
 
 Var OLD_INSTDIR
+
+; PATH bookkeeping for the command line integration section.
+Var MSL_PATH
+Var MSL_MATCH
+Var MSL_TMP
 
 ; ----- init ---------------------------------------------------------------
 Function .onInit
@@ -206,6 +223,46 @@ Function UninstallOldVersion
   RMDir "$OLD_INSTDIR"
 FunctionEnd
 
+; ----- command line integration -------------------------------------------
+; PATH is a per-user REG_EXPAND_SZ value; always write it back with
+; WriteRegExpandStr so entries such as %USERPROFILE% stay unexpanded.
+Function AddToUserPath
+  ReadRegStr $MSL_PATH HKCU "Environment" "Path"
+
+  ${StrStr} $MSL_MATCH "$MSL_PATH" "$INSTDIR"
+  ${If} $MSL_MATCH != ""
+    Return
+  ${EndIf}
+
+  ${If} $MSL_PATH == ""
+    WriteRegExpandStr HKCU "Environment" "Path" "$INSTDIR"
+  ${Else}
+    WriteRegExpandStr HKCU "Environment" "Path" "$MSL_PATH;$INSTDIR"
+  ${EndIf}
+
+  SendMessage ${HWND_BROADCAST} ${WM_SETTINGCHANGE} 0 "STR:Environment" /TIMEOUT=5000
+FunctionEnd
+
+Function un.RemoveFromUserPath
+  ReadRegStr $MSL_PATH HKCU "Environment" "Path"
+  ${If} $MSL_PATH == ""
+    Return
+  ${EndIf}
+
+  ; Remove the entry whatever shape it has been edited into.
+  ${UnStrRep} $MSL_TMP "$MSL_PATH" ';"$INSTDIR"' ""
+  ${UnStrRep} $MSL_TMP "$MSL_TMP" '"$INSTDIR";' ""
+  ${UnStrRep} $MSL_TMP "$MSL_TMP" '"$INSTDIR"' ""
+  ${UnStrRep} $MSL_TMP "$MSL_TMP" ";$INSTDIR" ""
+  ${UnStrRep} $MSL_TMP "$MSL_TMP" "$INSTDIR;" ""
+  ${UnStrRep} $MSL_TMP "$MSL_TMP" "$INSTDIR" ""
+
+  ${If} $MSL_TMP != "$MSL_PATH"
+    WriteRegExpandStr HKCU "Environment" "Path" "$MSL_TMP"
+    SendMessage ${HWND_BROADCAST} ${WM_SETTINGCHANGE} 0 "STR:Environment" /TIMEOUT=5000
+  ${EndIf}
+FunctionEnd
+
 ; ----- install ------------------------------------------------------------
 Section "-Prepare"
   Call CheckRunningApps
@@ -251,9 +308,21 @@ Section "$(SecDesktop)" SEC_DESKTOP
   CreateShortCut "$DESKTOP\${PRODUCT_NAME}.lnk" "$INSTDIR\${APP_EXE}" "" "$INSTDIR\${APP_EXE}" 0
 SectionEnd
 
+Section "$(SecCli)" SEC_CLI
+  ; The CLI ships next to the GUI, so PATH only needs the install folder. The
+  ; shim is generated here (not published) so it always resolves to $INSTDIR.
+  FileOpen $0 "$INSTDIR\msl.cmd" w
+  FileWrite $0 '@echo off$\r$\n'
+  FileWrite $0 '"%~dp0ModShardLauncher.CLI.exe" %*$\r$\n'
+  FileClose $0
+
+  Call AddToUserPath
+SectionEnd
+
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
   !insertmacro MUI_DESCRIPTION_TEXT ${SEC_CORE} "$(SecCoreDesc)"
   !insertmacro MUI_DESCRIPTION_TEXT ${SEC_DESKTOP} "$(SecDesktopDesc)"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SEC_CLI} "$(SecCliDesc)"
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
 ; ----- uninstall ----------------------------------------------------------
@@ -275,6 +344,10 @@ Section "Uninstall"
   Pop $0
   nsExec::Exec 'netsh advfirewall firewall delete rule name="${FIREWALL_RULE} (Mod Interface)"'
   Pop $0
+
+  ; Undo the command line integration before the files are removed.
+  Call un.RemoveFromUserPath
+  Delete "$INSTDIR\msl.cmd"
 
   Delete "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME}.lnk"
   Delete "$SMPROGRAMS\${PRODUCT_NAME}\Uninstall.lnk"

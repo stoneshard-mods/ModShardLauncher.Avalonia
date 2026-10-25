@@ -112,7 +112,9 @@ dotnet publish src/ModShardLauncher.CLI/ModShardLauncher.CLI.csproj `
 - 静默安装：`ModShardLauncher-Setup-x.y.z.exe /S /D=C:\path`（`/D` 必须是最后一个参数）；
 - 用户数据固定保存在 `%LOCALAPPDATA%\ModShardLauncher`，不在安装目录内，升级/重装不会丢失；
 - 静默卸载：`uninstall.exe /S`，默认保留用户数据目录；交互式卸载会询问是否保留；
-- 卸载会结束 GUI/CLI 进程，删除程序文件、注册表项、开始菜单/桌面快捷方式，并清理可能存在的服务与防火墙规则。
+- 卸载会结束 GUI/CLI 进程，删除程序文件、注册表项、开始菜单/桌面快捷方式，并清理可能存在的服务与防火墙规则；
+- 组件「命令行集成」默认勾选：把安装目录写入**用户 PATH**（`HKCU\Environment\Path`，REG_EXPAND_SZ）并生成 `msl.cmd`，之后在任意新开的终端里可直接 `msl patch ...`；取消勾选则不改动 PATH。卸载会移除该 PATH 项与 `msl.cmd`，重复安装不会产生重复条目。
+
 ## CLI
 
 ```text
@@ -127,6 +129,12 @@ ModShardLauncher.CLI.exe export  --data <vanilla.win> --type items|codes|presets
   --workdir <dir>   --data-dir 的旧名称，仍兼容
   -h, --help        帮助
   -v, --version     版本
+```
+
+安装时启用了「命令行集成」的话，上面的命令都可以省略路径，直接用 `msl`：
+
+```powershell
+msl patch --data D:\Games\Stoneshard\data.win --output .\modded.win --all
 ```
 
 示例：
