@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -17,11 +18,25 @@ namespace ModShardLauncher.GUI.ViewModels;
 /// </summary>
 public sealed partial class MainWindowViewModel : ObservableObject
 {
+    private const int LogEntryLimit = 2000;
+
     private readonly AppServices _services;
+
+    /// <summary>Log lines waiting to be pushed to the UI, batched to survive thousands of events.</summary>
+    private readonly ConcurrentQueue<LogEntry> _pendingLogs = new();
+
     private string _statusKey = "StatusReady";
     private object?[] _statusArgs = Array.Empty<object?>();
     private string _busyKey = string.Empty;
     private bool _catalogLoaded;
+
+    /// <summary>
+    /// True when the in-memory data was touched by a patch run and must be reloaded from disk
+    /// before it can be used again.
+    /// </summary>
+    private bool _dataNeedsReload;
+
+    private int _logFlushScheduled;
 
     public MainWindowViewModel(AppServices services)
     {
@@ -171,6 +186,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         await RunBusyAsync("StatusLoading", async () =>
         {
             await _services.GameData.LoadAsync(path);
+            _dataNeedsReload = false;
             DataFileName = Path.GetFileName(path);
             await ReloadCatalogCoreAsync();
             SetStatus("StatusLoaded", DataFileName);
@@ -191,6 +207,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
         await RunBusyAsync("StatusPatching", async () =>
         {
+            await ReloadPatchedDataAsync();
+
             Log.Information("Patching {Count} enabled mod(s)", _services.Catalog.Mods.Count(m => m.Enabled));
 
             PatchDiagnostic? diagnostic;
@@ -201,6 +219,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
             }
             catch (Exception ex)
             {
+                // The pipeline may have touched the data before throwing.
+                _dataNeedsReload = true;
+
                 // The legacy code lets this path escape; keep the app alive and report it.
                 Log.Error(ex, "Patching failed");
                 await _services.Dialogs.ShowErrorAsync(
@@ -210,6 +231,11 @@ public sealed partial class MainWindowViewModel : ObservableObject
                 SetStatus("StatusPatchFailed");
                 return;
             }
+
+            // Even a failed run leaves the loaded data partially patched (and a successful one is
+            // fully patched), so it can never be reused. The reload happens lazily, before the next
+            // patch, instead of making the user wait ~6 seconds for a file they may not patch again.
+            _dataNeedsReload = true;
 
             if (diagnostic is null)
             {
@@ -253,14 +279,24 @@ public sealed partial class MainWindowViewModel : ObservableObject
                 SetStatus("StatusPatchFailed");
             }
 
-            // Parity with the original: reload the vanilla file after every patch attempt.
-            if (!string.IsNullOrEmpty(_services.GameData.DataPath))
-            {
-                await _services.GameData.LoadAsync(_services.GameData.DataPath);
-            }
-
             await ReloadCatalogCoreAsync();
         });
+    }
+
+    /// <summary>
+    /// Reloads the vanilla file when the previous patch run left the in-memory data dirty. Unlike
+    /// the old unconditional reload it only costs time when another patch is actually requested.
+    /// </summary>
+    private async Task ReloadPatchedDataAsync()
+    {
+        if (!_dataNeedsReload || string.IsNullOrEmpty(_services.GameData.DataPath))
+        {
+            return;
+        }
+
+        Log.Information("Reloading {Path} before patching", _services.GameData.DataPath);
+        await _services.GameData.LoadAsync(_services.GameData.DataPath);
+        _dataNeedsReload = false;
     }
 
     [RelayCommand]
@@ -311,7 +347,15 @@ public sealed partial class MainWindowViewModel : ObservableObject
         LocalizationService.Instance.Format("AboutText", AppInfo.MslVersion, AppInfo.UtmtLibVersion));
 
     [RelayCommand]
-    private void ClearLog() => LogEntries.Clear();
+    private void ClearLog()
+    {
+        // Drop the queued lines too, otherwise a running patch would repopulate the panel.
+        while (_pendingLogs.TryDequeue(out _))
+        {
+        }
+
+        LogEntries.Clear();
+    }
 
     [RelayCommand]
     private void Exit()
@@ -476,15 +520,36 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     private void OnLogEntry(LogEntry entry)
     {
-        Dispatcher.UIThread.Post(() =>
+        // Serilog calls this on the patching thread, once per log line (thousands per patch).
+        // Queue the entry and flush in a single UI-thread batch instead of posting one
+        // dispatcher operation per line.
+        _pendingLogs.Enqueue(entry);
+        if (Interlocked.Exchange(ref _logFlushScheduled, 1) == 0)
+        {
+            Dispatcher.UIThread.Post(FlushPendingLogs);
+        }
+    }
+
+    private void FlushPendingLogs()
+    {
+        Interlocked.Exchange(ref _logFlushScheduled, 0);
+
+        int added = 0;
+        while (_pendingLogs.TryDequeue(out LogEntry entry))
         {
             LogEntries.Add(entry);
-            while (LogEntries.Count > 2000)
-            {
-                LogEntries.RemoveAt(0);
-            }
+            added++;
+        }
 
+        int excess = LogEntries.Count - LogEntryLimit;
+        for (int i = 0; i < excess; i++)
+        {
+            LogEntries.RemoveAt(0);
+        }
+
+        if (added > 0)
+        {
             LogAppended?.Invoke();
-        });
+        }
     }
 }

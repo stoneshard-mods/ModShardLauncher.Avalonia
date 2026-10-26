@@ -1,4 +1,5 @@
 using Avalonia.Media;
+using Avalonia.Media.Immutable;
 using Serilog.Core;
 using Serilog.Events;
 
@@ -7,6 +8,13 @@ namespace ModShardLauncher.GUI.Services;
 /// <summary>One line of the in-app log panel.</summary>
 public sealed record LogEntry(DateTime Time, LogEventLevel Level, string Message)
 {
+    // Shared immutable brushes: the log panel renders thousands of rows, and creating a new
+    // SolidColorBrush per row per render is pure garbage.
+    private static readonly IBrush DebugBrush = Brushes.Gray;
+    private static readonly IBrush InformationBrush = new ImmutableSolidColorBrush(Color.Parse("#7FB4FF"));
+    private static readonly IBrush WarningBrush = new ImmutableSolidColorBrush(Color.Parse("#E8B85C"));
+    private static readonly IBrush ErrorBrush = new ImmutableSolidColorBrush(Color.Parse("#F06A6A"));
+
     public string TimeText => Time.ToString("HH:mm:ss");
 
     public string LevelText => Level switch
@@ -21,10 +29,10 @@ public sealed record LogEntry(DateTime Time, LogEventLevel Level, string Message
 
     public IBrush LevelBrush => Level switch
     {
-        LogEventLevel.Verbose or LogEventLevel.Debug => Brushes.Gray,
-        LogEventLevel.Information => new SolidColorBrush(Color.Parse("#7FB4FF")),
-        LogEventLevel.Warning => new SolidColorBrush(Color.Parse("#E8B85C")),
-        _ => new SolidColorBrush(Color.Parse("#F06A6A")),
+        LogEventLevel.Verbose or LogEventLevel.Debug => DebugBrush,
+        LogEventLevel.Information => InformationBrush,
+        LogEventLevel.Warning => WarningBrush,
+        _ => ErrorBrush,
     };
 }
 

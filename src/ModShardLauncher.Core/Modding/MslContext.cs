@@ -1,7 +1,9 @@
 using ModShardLauncher.Mods;
 using UndertaleModLib;
 using UndertaleModLib.Compiler;
+using UndertaleModLib.Decompiler;
 using UndertaleModLib.Models;
+using UndertaleModLib.Util;
 
 namespace ModShardLauncher;
 
@@ -50,6 +52,21 @@ public static class MslContext
     internal static List<(string, string[])> Credits = new();
     internal static List<(string, UndertaleRoom.GameObject)> Disclaimers = new();
 
+    private static GlobalDecompileContext? _decompilerCache;
+
+    /// <summary>
+    /// Decompiler context shared by every decompilation of the currently loaded data file.
+    /// <para>
+    /// The library caches resolved function argument types (<c>ScriptArgsCache</c>) and anonymous
+    /// function names (<c>AnonymousFunctionNameCache</c>) here, and its own documentation says the
+    /// context is meant to be reused across runs. Creating a fresh context per call throws those
+    /// caches away and makes the decompiler recursively re-analyse the same scripts again, which
+    /// is the dominant cost of a patch.
+    /// </para>
+    /// </summary>
+    internal static GlobalDecompileContext DecompilerCache =>
+        _decompilerCache ?? throw new InvalidOperationException("No game data (data.win) is currently loaded.");
+
     /// <summary>Legacy callback storage; kept only for binary compatibility (the script console was removed).</summary>
     public static Dictionary<string, Action<string>> ScriptCallbacks => ModLoader.ScriptCallbacks;
 
@@ -57,6 +74,8 @@ public static class MslContext
     {
         DataLoader.data = data;
         _attached = true;
+        ResetDataScopedState();
+        _decompilerCache = new GlobalDecompileContext(data, false);
 
         // UndertaleModTool only sets this flag from its own UI. Without it the GML compiler takes
         // the pre-2.3 path and turns every call into a nameless function stub, which the game then
@@ -75,6 +94,21 @@ public static class MslContext
     {
         DataLoader.data = new UndertaleData();
         _attached = false;
+        ResetDataScopedState();
+    }
+
+    /// <summary>
+    /// Drops everything that belongs to one data file: table snapshots, loot registries and the
+    /// "index dictionaries already cleared" flag. Keeping them across a load would leak rows and
+    /// ids from the previous file into the next one (and make a second patch throw on duplicates).
+    /// </summary>
+    private static void ResetDataScopedState()
+    {
+        ModLoader.Weapons = new List<string>();
+        ModLoader.WeaponDescriptions = new List<string>();
+        LootTableRegistry.ResetLootTables();
+        UndertaleIO.IsDictionaryCleared = false;
+        _decompilerCache = null;
     }
 
     internal static void AddCredit(string modNameShort, string[] authors) =>

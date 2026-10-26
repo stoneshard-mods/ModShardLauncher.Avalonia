@@ -186,7 +186,7 @@ namespace ModShardLauncher
         public static string GetStringGMLFromFile(string fileName)
         {
             UndertaleCode code = GetUMTCodeFromFile(fileName);
-            GlobalDecompileContext context = new(MslContext.Data, false);
+            GlobalDecompileContext context = MslContext.DecompilerCache;
 
             return Decompiler.Decompile(code, context);
         }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Serilog;
 using UndertaleModLib;
@@ -686,11 +687,17 @@ namespace ModShardLauncher
         {
             try
             {
+                long joinStart = Stopwatch.GetTimestamp();
                 string newCode = string.Join("\n", fe.ienumerable);
+                long joinDone = Stopwatch.GetTimestamp();
+
                 switch (fe.header.patchingWay)
                 {
                     case PatchingWay.GML:
+                        long compileStart = Stopwatch.GetTimestamp();
                         fe.header.originalCode.ReplaceGML(newCode, MslContext.Data);
+                        Log.Debug("GML compile {File}: join {Join} ms, compile {Compile} ms",
+                            fe.header.fileName, ElapsedMs(joinStart, joinDone), ElapsedMs(compileStart, Stopwatch.GetTimestamp()));
                         break;
 
                     case PatchingWay.AssemblyAsString:

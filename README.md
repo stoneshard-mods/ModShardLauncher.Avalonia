@@ -65,6 +65,24 @@ dotnet run --project src/ModShardLauncher.CLI -- --version
 dotnet test tests/ModShardLauncher.Tests
 ```
 
+### 补丁基线回归（可选，需要原版 data.win）
+
+`PatchBaselineTests` 用 `MSL_TEST_DATA` 指向的原版 `data.win` 跑完整补丁流程：同一输入跑两遍，要求输出文件 SHA-256 与语义指纹完全一致；再与 `tests/ModShardLauncher.Tests/Baselines/patch-baselines.json` 记录的基线比对。修改补丁流程前后各跑一次，就能证明“没有行为变化”。
+
+```powershell
+# 1) 确定性 + 基线比对
+$env:MSL_TEST_DATA = "C:\Program Files (x86)\Steam\steamapps\common\Stoneshard\original.win"
+dotnet test tests/ModShardLauncher.Tests --filter "FullyQualifiedName~PatchBaselineTests"
+
+# 2) 确认改动确实不改变结果后重新录制基线，并提交 json 的 diff
+$env:MSL_UPDATE_BASELINE = "1"
+dotnet test tests/ModShardLauncher.Tests --filter "FullyQualifiedName~PatchBaselineTests"
+```
+
+- Steam 目录里的 `data.win` 往往已经被打过补丁，请指向干净的原版（通常是 `original.win`）；测试会检测残留的 `o_msl_timer` 并给出提示。
+- 全程约 3 分钟（每个场景跑两遍）。`MSL_BASELINE_SCENARIOS=base` 可只跑基础场景；`MSL_REQUIRE_BASELINE=1` 让“基线缺失”直接失败。
+- `loot` 场景在当前游戏版本会报告“锚点失效”并跳过：`InjectLootScripts` 依赖的 `script_execute` 行已不在 `gml_Object_c_container_Other_10` 里。
+
 > 用户数据目录：`Settings.json`、`Mods/`、`ModSources/`、`logs/` 全部保存在 **`%LOCALAPPDATA%\ModShardLauncher`**，与安装目录分离，升级或重装程序不会改动模组和设置。旧版放在程序目录（工作目录）里的同名文件/文件夹会在首次启动时自动迁移到新目录；CLI 可用 `--data-dir` 指定其他数据目录。便携模式不再保留。
 
 ## 发布（多文件 self-contained，两个 exe 同一目录）

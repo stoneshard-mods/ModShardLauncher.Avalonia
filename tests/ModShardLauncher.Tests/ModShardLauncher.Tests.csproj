@@ -26,4 +26,11 @@
     </Reference>
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Patch output baselines; MSL_UPDATE_BASELINE=1 rewrites the repository copy. -->
+    <None Update="Baselines\patch-baselines.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

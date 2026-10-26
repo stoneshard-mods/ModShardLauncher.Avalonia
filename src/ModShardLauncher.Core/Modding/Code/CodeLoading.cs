@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -18,7 +19,15 @@ namespace ModShardLauncher
         public static FileEnumerable<string> LoadGML(string fileName)
         {
             UndertaleCode code = GetUMTCodeFromFile(fileName);
-            GlobalDecompileContext context = new(MslContext.Data, false);
+
+            long start = Stopwatch.GetTimestamp();
+            GlobalDecompileContext context = MslContext.DecompilerCache;
+            long contextDone = Stopwatch.GetTimestamp();
+            string[] lines = Decompiler.Decompile(code, context).Split("\n");
+            long decompileDone = Stopwatch.GetTimestamp();
+
+            Log.Debug("GML decompile {File}: context {Context} ms, decompile {Decompile} ms",
+                fileName, ElapsedMs(start, contextDone), ElapsedMs(contextDone, decompileDone));
 
             return new(
                 new(
@@ -26,9 +35,12 @@ namespace ModShardLauncher
                     code,
                     PatchingWay.GML
                 ),
-                Decompiler.Decompile(code, context).Split("\n")
+                lines
             );
         }
+        /// <summary>Milliseconds between two <see cref="Stopwatch"/> timestamps.</summary>
+        internal static long ElapsedMs(long from, long to) =>
+            (long)Stopwatch.GetElapsedTime(from, to).TotalMilliseconds;
         public static FileEnumerable<string> LoadAssemblyAsString(string fileName)
         {
             UndertaleCode code = GetUMTCodeFromFile(fileName);

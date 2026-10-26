@@ -7,6 +7,7 @@ namespace ModShardLauncherTest;
 /// still applies the base modules (logger) but no longer injects any script-console content.
 /// Without the variable the test is a no-op so CI stays fast.
 /// </summary>
+[Collection(GameDataCollection.Name)]
 public class PatchContentTests
 {
     [Fact]

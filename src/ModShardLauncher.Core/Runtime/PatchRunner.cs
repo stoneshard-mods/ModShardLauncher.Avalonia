@@ -18,9 +18,17 @@ public sealed class PatchRunner
     }
 
     /// <summary>Patches the loaded data. Returns null on success, or a diagnostic describing the failing mod.</summary>
-    public PatchDiagnostic? Patch(IReadOnlyList<ModFile> mods)
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    public PatchDiagnostic? Patch(IReadOnlyList<ModFile> mods, CancellationToken cancellationToken = default)
     {
-        int enabledCount = mods.Count(m => m.Enabled);
+        // A mod can trigger ModCatalog.Reload (missing package) while we are patching, which clears
+        // the catalog's live list. Always work on a snapshot so the enumeration cannot break.
+        ModFile[] snapshot = mods.ToArray();
+
+        // Cancelling is a host decision, not a patch failure: fail fast before touching the data.
+        cancellationToken.ThrowIfCancellationRequested();
+
+        int enabledCount = snapshot.Count(m => m.Enabled);
         Log.Information("Patching {Enabled} enabled mod(s)...", enabledCount);
         if (enabledCount == 0)
         {
@@ -31,16 +39,23 @@ public sealed class PatchRunner
         try
         {
             GameLogInjection.InjectLog();
-            ApplyMods(mods);
+            ApplyMods(snapshot, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
             LootTableRegistry.InjectLootScripts();
             Log.Information("Patch pipeline completed in {Elapsed} ms", stopwatch.ElapsedMilliseconds);
             return null;
+        }
+        catch (OperationCanceledException)
+        {
+            // Do not turn a cancellation into a "mod failed" diagnostic.
+            Log.Warning("Patching cancelled after {Elapsed} ms; the loaded data is partially patched", stopwatch.ElapsedMilliseconds);
+            throw;
         }
         catch (Exception ex)
         {
             // Failures after the per-mod loop (credits room, menus, loot scripts) have no mod in
             // the Patching state; fall back to a mod-less diagnostic instead of masking the error.
-            PatchDiagnostic diagnostic = new(ex, GetFailingMod(mods));
+            PatchDiagnostic diagnostic = new(ex, GetFailingMod(snapshot));
             diagnostic.ToLog();
             return diagnostic;
         }
@@ -50,7 +65,7 @@ public sealed class PatchRunner
     public static ModFile? GetFailingMod(IReadOnlyList<ModFile> mods) =>
         mods.Where(x => x.Enabled).FirstOrDefault(x => x.PatchStatus == PatchStatus.Patching);
 
-    private void ApplyMods(IReadOnlyList<ModFile> mods)
+    private void ApplyMods(IReadOnlyList<ModFile> mods, CancellationToken cancellationToken)
     {
         MslContext.ResetPatchState();
 
@@ -60,6 +75,10 @@ public sealed class PatchRunner
             {
                 continue;
             }
+
+            // Mod boundaries are the only safe cancellation points: the data is left partially
+            // patched either way, but the host gets a chance to stop before the next mod starts.
+            cancellationToken.ThrowIfCancellationRequested();
 
             if (!mod.Existed)
             {

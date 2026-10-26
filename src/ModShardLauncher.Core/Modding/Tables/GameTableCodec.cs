@@ -50,7 +50,7 @@ public static class GameTableCodec
     {
         string serialized = JsonConvert.SerializeObject(table).Replace("\n", "");
         UndertaleCode target = MslContext.Data.Code.First(t => t.Name.Content == name);
-        GlobalDecompileContext context = new(MslContext.Data, false);
+        GlobalDecompileContext context = MslContext.DecompilerCache;
         string text = Decompiler.Decompile(target, context);
         text = Regex.Replace(text, "\\[.*\\]", serialized);
         target.ReplaceGML(text, MslContext.Data);

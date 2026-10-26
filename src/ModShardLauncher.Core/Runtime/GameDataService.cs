@@ -53,10 +53,10 @@ public sealed class GameDataService
     }
 
     /// <summary>Writes the patched data to <paramref name="path"/> using a temp file and an atomic replace.</summary>
-    public Task SaveAsync(string path, CancellationToken cancellationToken = default)
+    public async Task SaveAsync(string path, CancellationToken cancellationToken = default)
     {
+        await Task.Run(() => SaveCore(path), cancellationToken).ConfigureAwait(false);
         SavedDataPath = path;
-        return Task.Run(() => SaveCore(path), cancellationToken);
     }
 
     /// <summary>Dumps the loaded data for code exploration (same output as the WPF build).</summary>
@@ -98,14 +98,16 @@ public sealed class GameDataService
 
     private void SaveCore(string path)
     {
-        string tempPath = path + "temp";
+        // Unique temp file next to the target: a crashed or concurrent run can never clobber the
+        // temp file of another save, and the target is only touched by the final swap.
+        string tempPath = $"{path}.{Guid.NewGuid():N}.tmp";
         List<Exception> exceptions = new();
-        bool succeeded = true;
+        bool succeeded = false;
 
-        // First write next to the target, so a failure never corrupts the original file.
         try
         {
             SaveTo(tempPath);
+            succeeded = true;
         }
         catch (Exception saveException)
         {
@@ -118,30 +120,42 @@ public sealed class GameDataService
             {
                 exceptions.Add(cleanupException);
             }
-
-            succeeded = false;
         }
 
-        try
+        if (succeeded)
         {
-            if (succeeded)
+            try
             {
+                // File.Replace is an atomic swap on the same volume; File.Move is atomic when the
+                // destination does not exist yet. Never delete the target first: a crash between
+                // delete and move would lose the previous output.
                 if (File.Exists(path))
                 {
-                    File.Delete(path);
+                    File.Replace(tempPath, path, destinationBackupFileName: null, ignoreMetadataErrors: true);
                 }
-
-                File.Move(tempPath, path);
+                else
+                {
+                    File.Move(tempPath, path);
+                }
             }
-            else if (File.Exists(tempPath))
+            catch (Exception moveException)
+            {
+                exceptions.Add(moveException);
+                succeeded = false;
+            }
+        }
+
+        // Never leave a temp file behind, whichever way the swap ended.
+        if (File.Exists(tempPath))
+        {
+            try
             {
                 File.Delete(tempPath);
             }
-        }
-        catch (Exception moveException)
-        {
-            exceptions.Add(moveException);
-            succeeded = false;
+            catch (Exception cleanupException)
+            {
+                exceptions.Add(cleanupException);
+            }
         }
 
         if (!succeeded)

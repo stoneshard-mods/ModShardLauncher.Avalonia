@@ -6,6 +6,7 @@ namespace ModShardLauncherTest;
 /// Loading failures must leave the service in a clean state so the UI can never stay stuck in a
 /// "loading" state (the legacy LoadingDialog bug: a failing load never hid the modal dialog).
 /// </summary>
+[Collection(GameDataCollection.Name)]
 public class GameDataServiceTests
 {
     [Fact]
