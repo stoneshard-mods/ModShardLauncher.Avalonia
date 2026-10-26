@@ -110,16 +110,50 @@ namespace ModShardLauncher
             Msl.AddInnerFunction("scr_msl_resolve_random_items");
             Msl.AddInnerFunction("scr_msl_resolve_loot_table");
 
-            Msl.LoadGML("gml_Object_c_container_Other_10")
-                .MatchFrom("script_execute")
+            const string containerScript = "gml_Object_c_container_Other_10";
+            const string containerAnchor = "script_execute";
+
+            // The loot injection was written for an older game build where containers
+            // dispatched loot via `script_execute` inside c_container_Other_10, and
+            // units dropped loot in o_unit_Destroy_0. The current build rearchitected
+            // loot into per-type scr_loot_* scripts and removed that anchor, so the
+            // injection no longer applies. Skip gracefully (instead of letting
+            // MatchFrom throw and aborting the whole patch) until the loot module is
+            // rearchitected for the current build. On the legacy build the anchor is
+            // present, so the behaviour here is unchanged.
+            if (!ScriptExists(containerScript))
+            {
+                Log.Warning("Loot injection skipped: '{Script}' not found; the loot module needs rearchitecting for the current game build.", containerScript);
+                return;
+            }
+            var container = Msl.LoadGML(containerScript);
+            if (!container.ienumerable.Any(line => line.Contains(containerAnchor)))
+            {
+                Log.Warning("Loot injection skipped: anchor '{Anchor}' not found in '{Script}'; the loot module needs rearchitecting for the current game build.", containerAnchor, containerScript);
+                return;
+            }
+
+            container
+                .MatchFrom(containerAnchor)
                 .InsertBelow("scr_msl_resolve_loot_table(other, 0)")
                 .Save();
-                
-            Msl.LoadGML("gml_Object_o_unit_Destroy_0")
-                .MatchAll()
-                .InsertBelow("scr_msl_resolve_loot_table(self, 1)")
-                .Save();
+
+            const string unitScript = "gml_Object_o_unit_Destroy_0";
+            if (ScriptExists(unitScript))
+            {
+                Msl.LoadGML(unitScript)
+                    .MatchAll()
+                    .InsertBelow("scr_msl_resolve_loot_table(self, 1)")
+                    .Save();
+            }
+            else
+            {
+                Log.Warning("Unit loot injection skipped: '{Script}' not found.", unitScript);
+            }
         }
+
+        private static bool ScriptExists(string codeName) =>
+            MslContext.Data.Code.Any(c => c.Name?.Content == codeName);
     }
     public static partial class Msl
     {
