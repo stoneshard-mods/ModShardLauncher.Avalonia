@@ -57,6 +57,14 @@ UndertaleModTool {1}
   <data name="ModsCount" xml:space="preserve"><value>{0} 个模组</value></data>
   <data name="StatusReady" xml:space="preserve"><value>就绪</value></data>
   <data name="StatusFailed" xml:space="preserve"><value>操作失败</value></data>
+  <data name="MenuLaunchWindowed" xml:space="preserve"><value>以窗口模式启动</value></data>
+  <data name="MenuLaunchFullscreen" xml:space="preserve"><value>以全屏模式启动</value></data>
+  <data name="ToolbarLaunch" xml:space="preserve"><value>启动游戏</value></data>
+  <data name="HomeLaunchBody" xml:space="preserve"><value>通过 Steam 启动 Stoneshard。窗口/全屏选项会先改写游戏的 displayMode，下次启动即生效。</value></data>
+  <data name="HomeLaunchTitle" xml:space="preserve"><value>启动游戏</value></data>
+  <data name="MenuGame" xml:space="preserve"><value>游戏</value></data>
+  <data name="StatusLaunching" xml:space="preserve"><value>正在启动 Stoneshard…</value></data>
+  <data name="MenuLaunchGame" xml:space="preserve"><value>启动 Stoneshard</value></data>
   <data name="StatusCancelled" xml:space="preserve"><value>已取消</value></data>
   <data name="StatusCancelling" xml:space="preserve"><value>正在取消…</value></data>
   <data name="SettingsLanguage" xml:space="preserve"><value>语言</value></data>

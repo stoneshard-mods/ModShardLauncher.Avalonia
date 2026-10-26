@@ -71,6 +71,7 @@ internal static class CliApplication
             {
                 "patch" => await CliCommands.PatchAsync(arguments, cancellation.Token),
                 "list" => CliCommands.List(arguments),
+                "launch" => CliCommands.Launch(arguments),
                 "compile" => await CliCommands.CompileAsync(arguments),
                 "export" => await CliCommands.ExportAsync(arguments),
                 _ => Unknown(arguments.Command),

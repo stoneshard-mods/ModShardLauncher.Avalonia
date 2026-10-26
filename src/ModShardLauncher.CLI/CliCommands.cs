@@ -81,6 +81,41 @@ internal static class CliCommands
         }
     }
 
+    /// <summary>
+    /// Starts Stoneshard through Steam. <c>--windowed</c> / <c>--fullscreen</c> first rewrite the
+    /// game's <c>displayMode</c>, exactly like the GUI's launch commands.
+    /// </summary>
+    public static int Launch(CliArguments arguments)
+    {
+        bool windowed = arguments.Has("windowed");
+        bool fullscreen = arguments.Has("fullscreen");
+        if (windowed && fullscreen)
+        {
+            Console.Error.WriteLine("Pass only one of --windowed / --fullscreen.");
+            return 1;
+        }
+
+        GameDisplayMode? displayMode = fullscreen
+            ? GameDisplayMode.FullscreenBorderless
+            : windowed
+                ? GameDisplayMode.Windowed
+                : null;
+
+        try
+        {
+            GameLauncher.Launch(displayMode);
+            Console.WriteLine(displayMode is { } mode
+                ? $"Starting Stoneshard through Steam ({GameLauncher.ToIniValue(mode)})."
+                : "Starting Stoneshard through Steam.");
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(ex.Message);
+            return 2;
+        }
+    }
+
     public static int List(CliArguments arguments)
     {
         ModCatalog catalog = new(arguments.Get("mods"));

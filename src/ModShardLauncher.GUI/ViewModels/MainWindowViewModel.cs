@@ -179,6 +179,38 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [RelayCommand]
     private void ToggleLog() => IsLogVisible = !IsLogVisible;
 
+    // ----- game ------------------------------------------------------------
+
+    /// <summary>Starts Stoneshard through Steam without touching the display mode.</summary>
+    [RelayCommand]
+    private Task LaunchGameAsync() => LaunchGameCoreAsync(null);
+
+    /// <summary>Switches the game to windowed mode, then starts it.</summary>
+    [RelayCommand]
+    private Task LaunchGameWindowedAsync() => LaunchGameCoreAsync(GameDisplayMode.Windowed);
+
+    /// <summary>Switches the game to borderless fullscreen, then starts it.</summary>
+    [RelayCommand]
+    private Task LaunchGameFullscreenAsync() => LaunchGameCoreAsync(GameDisplayMode.FullscreenBorderless);
+
+    private async Task LaunchGameCoreAsync(GameDisplayMode? displayMode)
+    {
+        try
+        {
+            GameLauncher.Launch(displayMode);
+            SetStatus("StatusLaunching");
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Cannot start Stoneshard");
+            SetStatus("StatusFailed");
+            await _services.Dialogs.ShowErrorAsync(
+                LocalizationService.Instance["DialogErrorTitle"],
+                ex.Message,
+                ex.ToString());
+        }
+    }
+
     /// <summary>
     /// Asks the running operation to stop. The pipeline only stops between mods (and before the
     /// data file is swapped in), so the button reports "cancelling" until it actually ends.

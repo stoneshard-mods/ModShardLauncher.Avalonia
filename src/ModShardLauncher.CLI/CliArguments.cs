@@ -117,6 +117,7 @@ internal sealed class CliArguments
             Usage:
               ModShardLauncher.CLI.exe patch   --data <vanilla.win> --output <patched.win> [options]
               ModShardLauncher.CLI.exe list    [options]
+              ModShardLauncher.CLI.exe launch  [--windowed | --fullscreen]
               ModShardLauncher.CLI.exe compile --source <project-dir> [options]
               ModShardLauncher.CLI.exe export  --data <vanilla.win> --type items|codes|presets
 
@@ -125,6 +126,10 @@ internal sealed class CliArguments
               --enable name1,name2  Enable only these mods
               --all                 Enable every installed mod
               --timings <file>      Write the load/patch/save stage breakdown as JSON
+
+            Launch options (starts Stoneshard through Steam):
+              --windowed            Set displayMode="windowed" before starting
+              --fullscreen          Set displayMode="fullscreenBorderless" before starting
 
             Global options:
               --data-dir <dir>  Override the user data folder

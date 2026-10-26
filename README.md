@@ -7,6 +7,7 @@
 ## 功能
 
 - 打开原版 `data.win`，扫描 `Mods/*.sml`，启用/禁用模组，打补丁并另存为新文件。
+- 一键启动游戏：通过 Steam（`steam://rungameid/625960`）启动 Stoneshard；可先用「窗口 / 全屏」选项改写游戏 `settings.ini` 的 `displayMode` 再启动（只改这一行，其余行原样保留）。
 - 打补丁可以取消：GUI 忙碌遮罩上有「取消」按钮，CLI 按 Ctrl+C。流水线只在“mod 之间”和“写入目标文件之前”停下，因此取消不会留下半成品输出文件。
 - 拒绝在已打补丁的文件上二次打补丁：检测到 `o_msl_timer` 会直接给出明确错误，而不是先重复注入日志钩子再报“事件已存在”。
 - 打开数据文件时，选择器默认定位到 Steam 安装目录 `C:\Program Files (x86)\Steam\steamapps\common\Stoneshard`；该目录不存在时回退到当前工作目录。
@@ -207,6 +208,7 @@ ModShardLauncher.CLI.exe patch   --data <vanilla.win> --output <patched.win>
                                  [--mods <dir>] [--enable name1,name2 | --all]
                                  [--timings <file>]
 ModShardLauncher.CLI.exe list    [--mods <dir>]
+ModShardLauncher.CLI.exe launch  [--windowed | --fullscreen]
 ModShardLauncher.CLI.exe compile --source <project-dir> [--mods <dir>]
 ModShardLauncher.CLI.exe export  --data <vanilla.win> --type items|codes|presets
 
@@ -235,6 +237,11 @@ ModShardLauncher.CLI.exe patch --data .\data.win --output .\out.win --enable Qui
 
 # 编译 ModSources 下的工程
 ModShardLauncher.CLI.exe compile --source .\ModSources\MyMod
+
+# 启动游戏：直接启动 / 先切窗口 / 先切全屏无边框
+ModShardLauncher.CLI.exe launch
+ModShardLauncher.CLI.exe launch --windowed
+ModShardLauncher.CLI.exe launch --fullscreen
 ```
 
 退出码：`0` 成功，`1` 参数错误，`2` 编译/补丁失败，`130` 用户取消（Ctrl+C），`3` 未处理异常。

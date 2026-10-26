@@ -57,6 +57,14 @@ Not affiliated with Ink Stains Games.</value></data>
   <data name="ModsCount" xml:space="preserve"><value>{0} mods</value></data>
   <data name="StatusReady" xml:space="preserve"><value>Ready</value></data>
   <data name="StatusFailed" xml:space="preserve"><value>Operation failed</value></data>
+  <data name="MenuLaunchWindowed" xml:space="preserve"><value>Start windowed</value></data>
+  <data name="MenuLaunchFullscreen" xml:space="preserve"><value>Start fullscreen (borderless)</value></data>
+  <data name="ToolbarLaunch" xml:space="preserve"><value>Start game</value></data>
+  <data name="HomeLaunchBody" xml:space="preserve"><value>Starts Stoneshard through Steam. The windowed/fullscreen options write the game's displayMode first, so the next start uses it.</value></data>
+  <data name="HomeLaunchTitle" xml:space="preserve"><value>Start the game</value></data>
+  <data name="MenuGame" xml:space="preserve"><value>Game</value></data>
+  <data name="StatusLaunching" xml:space="preserve"><value>Starting Stoneshard…</value></data>
+  <data name="MenuLaunchGame" xml:space="preserve"><value>Start Stoneshard</value></data>
   <data name="StatusCancelled" xml:space="preserve"><value>Cancelled</value></data>
   <data name="StatusCancelling" xml:space="preserve"><value>Cancelling…</value></data>
   <data name="SettingsLanguage" xml:space="preserve"><value>Language</value></data>

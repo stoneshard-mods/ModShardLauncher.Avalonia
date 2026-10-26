@@ -57,6 +57,14 @@ UndertaleModTool {1}
   <data name="ModsCount" xml:space="preserve"><value>{0} модов</value></data>
   <data name="StatusReady" xml:space="preserve"><value>Готово</value></data>
   <data name="StatusFailed" xml:space="preserve"><value>Ошибка</value></data>
+  <data name="MenuLaunchWindowed" xml:space="preserve"><value>Запустить в окне</value></data>
+  <data name="MenuLaunchFullscreen" xml:space="preserve"><value>Запустить во весь экран</value></data>
+  <data name="ToolbarLaunch" xml:space="preserve"><value>Запустить игру</value></data>
+  <data name="HomeLaunchBody" xml:space="preserve"><value>Запускает Stoneshard через Steam. Пункты «в окне» и «во весь экран» сначала записывают displayMode игры.</value></data>
+  <data name="HomeLaunchTitle" xml:space="preserve"><value>Запуск игры</value></data>
+  <data name="MenuGame" xml:space="preserve"><value>Игра</value></data>
+  <data name="StatusLaunching" xml:space="preserve"><value>Запуск Stoneshard…</value></data>
+  <data name="MenuLaunchGame" xml:space="preserve"><value>Запустить Stoneshard</value></data>
   <data name="StatusCancelled" xml:space="preserve"><value>Отменено</value></data>
   <data name="StatusCancelling" xml:space="preserve"><value>Отмена…</value></data>
   <data name="SettingsLanguage" xml:space="preserve"><value>Язык</value></data>
