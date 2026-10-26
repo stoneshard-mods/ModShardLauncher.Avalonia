@@ -27,7 +27,6 @@ Not affiliated with Ink Stains Games.</value></data>
   <data name="HomeStatsEnabled" xml:space="preserve"><value>Enabled</value></data>
   <data name="MenuShowSources" xml:space="preserve"><value>Mod sources</value></data>
   <data name="DialogCopy" xml:space="preserve"><value>Copy</value></data>
-  <data name="MenuTools" xml:space="preserve"><value>Tools</value></data>
   <data name="StatusPatchFailed" xml:space="preserve"><value>Patching failed</value></data>
   <data name="ModsEnable" xml:space="preserve"><value>Enable</value></data>
   <data name="HomeStatsSourcesValue" xml:space="preserve"><value>{0} projects</value></data>
@@ -60,8 +59,6 @@ Not affiliated with Ink Stains Games.</value></data>
   <data name="MenuLaunchWindowed" xml:space="preserve"><value>Start windowed</value></data>
   <data name="MenuLaunchFullscreen" xml:space="preserve"><value>Start fullscreen (borderless)</value></data>
   <data name="ToolbarLaunch" xml:space="preserve"><value>Start game</value></data>
-  <data name="HomeLaunchBody" xml:space="preserve"><value>Starts Stoneshard through Steam. The windowed/fullscreen options write the game's displayMode first, so the next start uses it.</value></data>
-  <data name="HomeLaunchTitle" xml:space="preserve"><value>Start the game</value></data>
   <data name="MenuGame" xml:space="preserve"><value>Game</value></data>
   <data name="StatusLaunching" xml:space="preserve"><value>Starting Stoneshard…</value></data>
   <data name="MenuLaunchGame" xml:space="preserve"><value>Start Stoneshard</value></data>

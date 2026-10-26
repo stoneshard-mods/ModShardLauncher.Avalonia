@@ -45,18 +45,6 @@
         </StackPanel>
       </Border>
 
-      <Border Classes="card">
-        <StackPanel Spacing="10">
-          <TextBlock Text="{loc:Tr HomeLaunchTitle}" Classes="section" />
-          <TextBlock Text="{loc:Tr HomeLaunchBody}" Classes="caption" />
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <Button Content="{loc:Tr MenuLaunchGame}" Command="{Binding Main.LaunchGameCommand}" Classes="primary" />
-            <Button Content="{loc:Tr MenuLaunchWindowed}" Command="{Binding Main.LaunchGameWindowedCommand}" />
-            <Button Content="{loc:Tr MenuLaunchFullscreen}" Command="{Binding Main.LaunchGameFullscreenCommand}" />
-          </StackPanel>
-        </StackPanel>
-      </Border>
-
     </StackPanel>
   </ScrollViewer>
 </UserControl>

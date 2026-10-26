@@ -30,10 +30,6 @@
           <Separator />
           <MenuItem Header="{loc:Tr MenuReload}" Command="{Binding ReloadModsCommand}" InputGesture="F5" />
         </MenuItem>
-        <MenuItem Header="{loc:Tr MenuTools}">
-          <MenuItem Header="{loc:Tr MenuOpenModsFolder}" Command="{Binding OpenModsFolderCommand}" />
-          <MenuItem Header="{loc:Tr MenuOpenLogs}" Command="{Binding OpenLogsFolderCommand}" />
-        </MenuItem>
         <MenuItem Header="{loc:Tr MenuGame}">
           <MenuItem Header="{loc:Tr MenuLaunchGame}" Command="{Binding LaunchGameCommand}" />
           <Separator />
@@ -49,7 +45,22 @@
           <StackPanel Orientation="Horizontal" Spacing="8">
             <Button Content="{loc:Tr ToolbarOpen}" Command="{Binding OpenDataCommand}" Classes="primary" />
             <Button Content="{loc:Tr ToolbarPatch}" Command="{Binding PatchAndSaveCommand}" />
-            <Button Content="{loc:Tr ToolbarLaunch}" Command="{Binding LaunchGameCommand}" />
+            <Button>
+              <Button.Flyout>
+                <MenuFlyout Placement="BottomEdgeAlignedLeft">
+                  <MenuItem Header="{loc:Tr MenuLaunchWindowed}" Command="{Binding LaunchGameWindowedCommand}" />
+                  <MenuItem Header="{loc:Tr MenuLaunchFullscreen}" Command="{Binding LaunchGameFullscreenCommand}" />
+                </MenuFlyout>
+              </Button.Flyout>
+              <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                <TextBlock Text="{loc:Tr ToolbarLaunch}" VerticalAlignment="Center" />
+                <Path Data="M0,0 L8,0 L4,4 Z"
+                      Fill="{DynamicResource TextMuted}"
+                      Width="8" Height="4"
+                      Stretch="Fill"
+                      VerticalAlignment="Center" />
+              </StackPanel>
+            </Button>
             <Button Content="{loc:Tr ToolbarReload}" Command="{Binding ReloadModsCommand}" />
             <Button Content="{loc:Tr MenuOpenModsFolder}" Command="{Binding OpenModsFolderCommand}" Classes="ghost" />
             <Button Content="{loc:Tr MenuOpenLogs}" Command="{Binding OpenLogsFolderCommand}" Classes="ghost" />

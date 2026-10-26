@@ -27,7 +27,6 @@ UndertaleModTool {1}
   <data name="HomeStatsEnabled" xml:space="preserve"><value>Включено</value></data>
   <data name="MenuShowSources" xml:space="preserve"><value>Исходники модов</value></data>
   <data name="DialogCopy" xml:space="preserve"><value>Копировать</value></data>
-  <data name="MenuTools" xml:space="preserve"><value>Инструменты</value></data>
   <data name="StatusPatchFailed" xml:space="preserve"><value>Патчинг не удался</value></data>
   <data name="ModsEnable" xml:space="preserve"><value>Включить</value></data>
   <data name="HomeStatsSourcesValue" xml:space="preserve"><value>{0} проектов</value></data>
@@ -60,8 +59,6 @@ UndertaleModTool {1}
   <data name="MenuLaunchWindowed" xml:space="preserve"><value>Запустить в окне</value></data>
   <data name="MenuLaunchFullscreen" xml:space="preserve"><value>Запустить во весь экран</value></data>
   <data name="ToolbarLaunch" xml:space="preserve"><value>Запустить игру</value></data>
-  <data name="HomeLaunchBody" xml:space="preserve"><value>Запускает Stoneshard через Steam. Пункты «в окне» и «во весь экран» сначала записывают displayMode игры.</value></data>
-  <data name="HomeLaunchTitle" xml:space="preserve"><value>Запуск игры</value></data>
   <data name="MenuGame" xml:space="preserve"><value>Игра</value></data>
   <data name="StatusLaunching" xml:space="preserve"><value>Запуск Stoneshard…</value></data>
   <data name="MenuLaunchGame" xml:space="preserve"><value>Запустить Stoneshard</value></data>
