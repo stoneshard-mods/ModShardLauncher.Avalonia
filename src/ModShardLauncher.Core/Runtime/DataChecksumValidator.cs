@@ -7,20 +7,19 @@ namespace ModShardLauncher
 {
     public static class DataChecksumValidator
     {
-        private static string ComputeChecksum(FileStream stream)
+        /// <summary>
+        /// MD5 of the whole data file. Also used as the identity of a data file by the optional
+        /// per-file caches, so it is computed once per load and shared.
+        /// </summary>
+        public static string ComputeChecksum(FileStream stream)
         {
             using MD5 md5 = MD5.Create();
             return Convert.ToHexString(md5.ComputeHash(stream));
         }
-        /// <summary>
-        /// Return True if the MD5 checksum of a file is equal a valid precomputed checksum.
-        /// </summary>
-        /// <param name="stream"></param>
-        /// <returns></returns>
-        public static bool CompareChecksum(FileStream stream)
-        {
-            string hash = ComputeChecksum(stream);
 
+        /// <summary>Whether <paramref name="checksum"/> is one of the known steam vanilla builds.</summary>
+        public static bool IsKnownChecksum(string checksum)
+        {
             string[] checksums =
             {
                 "5F91989CA7E2A2B1234B2CD2A6AF9821", // Steam 0.9.1.16-vm
@@ -28,7 +27,14 @@ namespace ModShardLauncher
                 "6F9F1E29275EEF60E3A725ECA1033DF8", // Steam 0.9.1.18-vm
                 "47282D0C650216D88AE25FA99615F9CB", // Steam 0.9.3.9-vm
             };
-            return checksums.Contains(hash);
+            return checksums.Contains(checksum);
         }
+
+        /// <summary>
+        /// Return True if the MD5 checksum of a file is equal a valid precomputed checksum.
+        /// </summary>
+        /// <param name="stream"></param>
+        /// <returns></returns>
+        public static bool CompareChecksum(FileStream stream) => IsKnownChecksum(ComputeChecksum(stream));
     }
 }

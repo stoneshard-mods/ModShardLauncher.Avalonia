@@ -23,6 +23,12 @@ public static class AppPaths
 
     public static string LogsDirectory => Path.Combine(DataDirectory, "logs");
 
+    /// <summary>
+    /// Optional per-data-file caches (currently the decompiler's authoring state). Safe to delete:
+    /// everything in here is rebuilt on the next patch run, only slower.
+    /// </summary>
+    public static string CacheDirectory => Path.Combine(DataDirectory, "cache");
+
     public static string SettingsFile => Path.Combine(DataDirectory, "Settings.json");
 
     public static string ExportDirectory => Path.Combine(DataDirectory, "export");
@@ -46,6 +52,7 @@ public static class AppPaths
         Directory.CreateDirectory(ModsDirectory);
         Directory.CreateDirectory(ModSourcesDirectory);
         Directory.CreateDirectory(LogsDirectory);
+        Directory.CreateDirectory(CacheDirectory);
     }
 
     /// <summary>Folders that belong to the pre-1.0 portable layout inside the installation folder.</summary>

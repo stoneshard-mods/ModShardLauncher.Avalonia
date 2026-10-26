@@ -37,6 +37,7 @@ public sealed class PatchRunner
 
         System.Diagnostics.Stopwatch stopwatch = System.Diagnostics.Stopwatch.StartNew();
         using PatchTimings.Scope pipelineTiming = PatchTimings.Measure("pipeline");
+        bool completed = false;
         try
         {
             GameLogInjection.InjectLog();
@@ -44,6 +45,7 @@ public sealed class PatchRunner
             cancellationToken.ThrowIfCancellationRequested();
             LootTableRegistry.InjectLootScripts();
             Log.Information("Patch pipeline completed in {Elapsed} ms", stopwatch.ElapsedMilliseconds);
+            completed = true;
             return null;
         }
         catch (OperationCanceledException)
@@ -59,6 +61,17 @@ public sealed class PatchRunner
             PatchDiagnostic diagnostic = new(ex, GetFailingMod(snapshot));
             diagnostic.ToLog();
             return diagnostic;
+        }
+        finally
+        {
+            // Merge this run's decompiler state into the per-data-file cache for the next run.
+            // Only a run that got through the whole pipeline is learned from: a failed or cancelled
+            // run may have stopped in the middle of a mod, and its state is not worth trusting.
+            // Best effort only: Learn never throws and must not turn a patch into a failure.
+            if (completed)
+            {
+                DecompilerCacheStore.Learn(MslContext.HasData ? MslContext.Data : null);
+            }
         }
     }
 

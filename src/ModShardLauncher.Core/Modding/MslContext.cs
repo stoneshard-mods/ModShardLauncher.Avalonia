@@ -137,7 +137,7 @@ public static class MslContext
     /// <summary>Legacy callback storage; kept only for binary compatibility (the script console was removed).</summary>
     public static Dictionary<string, Action<string>> ScriptCallbacks => ModLoader.ScriptCallbacks;
 
-    internal static void Attach(UndertaleData data)
+    internal static void Attach(UndertaleData data, string? dataChecksum = null)
     {
         DataLoader.data = data;
         _attached = true;
@@ -155,6 +155,11 @@ public static class MslContext
         {
             CompileContext.GMS2_3 = true;
         }
+
+        // Optional: replay the decompiler's authoring state for this exact data file instead of
+        // rebuilding it (see DecompilerCacheStore). Falls back to the library's own analysis when
+        // there is nothing usable, and never throws.
+        DecompilerCacheStore.TryApply(dataChecksum, data, _decompilerCache);
     }
 
     internal static void Detach()
@@ -177,6 +182,7 @@ public static class MslContext
         UndertaleIO.IsDictionaryCleared = false;
         _decompilerCache = null;
         DecompiledText.Clear();
+        DecompilerCacheStore.Reset();
     }
 
     internal static void AddCredit(string modNameShort, string[] authors) =>

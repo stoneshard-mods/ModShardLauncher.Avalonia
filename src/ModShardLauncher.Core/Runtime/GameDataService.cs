@@ -71,7 +71,10 @@ public sealed class GameDataService
     private void LoadCore(string path)
     {
         using FileStream stream = new(path, FileMode.Open, FileAccess.Read);
-        if (!DataChecksumValidator.CompareChecksum(stream))
+
+        // One checksum per load: it validates the file and identifies it for the optional caches.
+        string checksum = DataChecksumValidator.ComputeChecksum(stream);
+        if (!DataChecksumValidator.IsKnownChecksum(checksum))
         {
             Log.Warning(
                 "Checksum inconsistency, {{{0}}} may not be steam vanilla from the modbranch beta branch or is a new version.",
@@ -81,7 +84,7 @@ public sealed class GameDataService
         UndertaleData data = UndertaleIO.Read(stream, LogUtmtWarning, LogUtmtMessage);
         _data = data;
         DataPath = path;
-        MslContext.Attach(data);
+        MslContext.Attach(data, checksum);
 
         if (data.IsYYC())
         {
