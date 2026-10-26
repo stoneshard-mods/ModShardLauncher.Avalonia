@@ -85,7 +85,7 @@ UndertaleModTool {1}
   <data name="MenuExit" xml:space="preserve"><value>退出</value></data>
   <data name="StatusCompiling" xml:space="preserve"><value>正在编译模组…</value></data>
   <data name="StatusCompiled" xml:space="preserve"><value>已编译 {0}</value></data>
-  <data name="HomeHintBody" xml:space="preserve"><value>1. 打开 modbranch 测试分支的原版 data.win。2. 勾选需要的模组。3. 打补丁并另存为新文件。4. 在《石质碎片》中选择该文件。</value></data>
+  <data name="HomeHintBody" xml:space="preserve"><value>1. 打开 modbranch 测试分支的原版 data.win。2. 勾选需要的模组。3. 打补丁并另存为新文件。4. 在 StoneShard 中选择该文件。</value></data>
   <data name="StatusModsCount" xml:space="preserve"><value>{0} 个模组</value></data>
   <data name="SourcesEmpty" xml:space="preserve"><value>未找到模组源码</value></data>
   <data name="ToolbarOpen" xml:space="preserve"><value>打开 data.win</value></data>
