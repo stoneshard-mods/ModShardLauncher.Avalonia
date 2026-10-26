@@ -100,7 +100,7 @@ dotnet test tests/ModShardLauncher.Tests --filter "FullyQualifiedName~PatchBasel
 
 反编译文本在**代码未被改写期间**只计算一次（`MslContext.DecompileText`）：同一个脚本在一次打补丁过程中被反复读取会得到完全相同的文本（否则反编译器会把只在首次出现、写在文本开头的警告注释加进去，导致行号漂移，按位置打补丁的 mod 会跟着 mod 顺序变化）。任何写入——`.Save()`、`SetStringGMLInFile`、`SetTable`、`SetAssemblyString`——都会立刻让对应缓存失效，因此补丁结果不受影响。
 
-当前无缓存基线（`Release`，同一台机器，5 个 mod，3 次取中位数；三次产物 SHA-256 均为 `7D398D4F…62EC0`，墙钟 101.1 / 101.8 / 101.3 秒）：
+当前无缓存基线（`Release`，同一台机器，5 个 mod，3 次取中位数。这一组是 **反编译器缓存之前** 的历史测量，保留用于对照；保存路径优化后的冷跑见下一节）：
 
 | 阶段 | 中位数 |
 |---|---|
@@ -123,11 +123,11 @@ dotnet test tests/ModShardLauncher.Tests --filter "FullyQualifiedName~PatchBasel
 
 | 阶段 | 冷跑（无缓存） | 热跑（命中缓存） |
 |---|---|---|
-| 墙钟 | 103.1 s | **29.3 s** |
-| 补丁流水线 | 87.3 s | 14.0 s |
-| └ 子函数表构建（`KnownSubFunctions`） | 16.7 s | **0.1 s** |
-| └ `o_context_button_Mouse_4` 首次反编译 | 47.2 s | **0.5 s** |
-| 加载 / 保存 | 6.5 / 9.3 s | 6.5 / 8.8 s |
+| 墙钟 | 97.4 s | **24.7 s** |
+| 补丁流水线 | 87.2 s | 14.5 s |
+| └ 子函数表构建（`KnownSubFunctions`） | 16.5 s | **0.1 s** |
+| └ `o_context_button_Mouse_4` 首次反编译 | 47.9 s | **0.5 s** |
+| 加载 / 保存 | 6.5 / 3.6 s | 6.5 / 3.6 s |
 | 产物 SHA-256 | `7D398D4F…` | `7D398D4F…`（完全一致） |
 
 缓存内容与安全约定：
@@ -140,6 +140,15 @@ dotnet test tests/ModShardLauncher.Tests --filter "FullyQualifiedName~PatchBasel
 - `MSL_NO_DECOMPILER_CACHE=1` 完全关闭；删除 `cache/` 目录等价于清空（下次会重建）。
 
 > 已知语义让步：`ScriptArgsCache` 记录的是上一次运行时的类型推断。若某个 mod 改写了某个被调用函数的**参数资产类型**，回放的类型可能过期。实测 5 个 mod 的产物字节完全一致；一旦怀疑有差异，用 `MSL_NO_DECOMPILER_CACHE=1` 复跑对比即可。
+
+### 保存：先写进内存，再一次性落盘
+
+剩下的 10 秒几乎全是“搬运 160 MB”，其中保存从 **8.9 s 降到 3.6 s**，做法不改库、只换 `Stream`：
+
+- 冻结的 UndertaleModTool 在收尾阶段会**反复回退定位**去改写指针；`FileStream` 每次定位都要清空自己的缓冲区，于是尾部退化成几万次零散小块写（实测直接写盘 9.1 s）。
+- 改成先序列化到内存，再顺序拷贝一次到文件：**3.4 s 序列化 + 0.2 s 落盘**（同尺寸纯顺序写只要 0.18 s，说明磁盘不是瓶颈）。产物字节完全一致。
+- 代价是保存期间临时多占约 1 份文件大小的内存（153 MB 的文件约 +150 MB）；估算超过 **768 MB** 的数据文件会自动退回直接写盘，内存不足时同样退回并在日志里告警。
+- 加载那 6.5 s 无法从外部优化：它是 5.1 s 解析（库内单线程）+ 0.4 s 整文件 MD5 + 首次 JIT，加大读缓冲、顺序提示实测都没有差异（4 KB 与 1 MB 缓冲各跑两次：5178/5037 ms vs 5049/5179 ms）。
 
 > 用户数据目录：`Settings.json`、`Mods/`、`ModSources/`、`logs/` 全部保存在 **`%LOCALAPPDATA%\ModShardLauncher`**，与安装目录分离，升级或重装程序不会改动模组和设置。旧版放在程序目录（工作目录）里的同名文件/文件夹会在首次启动时自动迁移到新目录；CLI 可用 `--data-dir` 指定其他数据目录。便携模式不再保留。
 
