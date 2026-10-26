@@ -59,12 +59,22 @@ public static class SmlPackageReader
         byte[] versionBytes = ReadBytes(stream, versionLength);
 
         file.Version = versionDigits.Replace(Encoding.UTF8.GetString(versionBytes), "$1");
-        Log.Information("Reading {{{0}}} built with version {{{1}}}", modName, file.Version);
 
         ReadChunkTable(stream, file);
         ReadChunkTable(stream, file);
         ReadChunkTable(stream, file);
         ReadChunkTable(stream, file);
+
+        // The package keeps its mod name inside the chunk paths (<ModName>\icon.png),
+        // not in the header. Deriving the name from there means the file itself can be
+        // renamed to <ModName>-<version>.sml without changing the mod's identity.
+        string? packageRoot = GetPackageRootName(file);
+        if (packageRoot is not null)
+        {
+            file.Name = packageRoot;
+        }
+
+        Log.Information("Reading {{{0}}} built with version {{{1}}}", file.Name, file.Version);
 
         if (stream.Position > int.MaxValue)
         {
@@ -101,6 +111,24 @@ public static class SmlPackageReader
 
         file.Stream = null;
         return file;
+    }
+
+    /// <summary>
+    /// Returns the folder name the packer used for every chunk (<c>ModName\icon.png</c>),
+    /// or <c>null</c> when the package has no chunk paths.
+    /// </summary>
+    private static string? GetPackageRootName(ModFile file)
+    {
+        foreach (FileChunk chunk in file.Files)
+        {
+            int separator = chunk.name.IndexOfAny(new[] { '\\', '/' });
+            if (separator > 0)
+            {
+                return chunk.name[..separator];
+            }
+        }
+
+        return null;
     }
 
     private static void ReadChunkTable(FileStream stream, ModFile file)
