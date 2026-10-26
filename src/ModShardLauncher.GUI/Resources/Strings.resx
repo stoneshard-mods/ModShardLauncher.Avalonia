@@ -96,7 +96,6 @@ Not affiliated with Ink Stains Games.</value></data>
   <data name="MenuReload" xml:space="preserve"><value>Reload mods</value></data>
   <data name="SourcesCount" xml:space="preserve"><value>{0} projects</value></data>
   <data name="SettingsPaths" xml:space="preserve"><value>Folders</value></data>
-  <data name="MenuHelp" xml:space="preserve"><value>Help</value></data>
   <data name="CommonOff" xml:space="preserve"><value>Off</value></data>
   <data name="DialogOk" xml:space="preserve"><value>OK</value></data>
   <data name="HomeStatsSources" xml:space="preserve"><value>Mod sources</value></data>
@@ -105,6 +104,8 @@ Not affiliated with Ink Stains Games.</value></data>
   <data name="ModStatusIdle" xml:space="preserve"><value>idle</value></data>
   <data name="SourcesEmptyHint" xml:space="preserve"><value>Create a mod project inside ModSources, then reload.</value></data>
   <data name="AboutTitle" xml:space="preserve"><value>About ModShardLauncher</value></data>
+  <data name="AboutLinkLabel" xml:space="preserve"><value>Original project (this build is a refactor of it):</value></data>
+  <data name="AboutProjectLabel" xml:space="preserve"><value>This project:</value></data>
   <data name="StatusLoaded" xml:space="preserve"><value>Loaded {0}</value></data>
   <data name="MenuFile" xml:space="preserve"><value>File</value></data>
   <data name="ModsEmpty" xml:space="preserve"><value>No mods found</value></data>

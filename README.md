@@ -4,6 +4,14 @@
 
 ![主界面](docs/assets/main-window.png)
 
+## 与原项目的关系
+
+本项目是 [ModShardTeam/ModShardLauncher](https://github.com/ModShardTeam/ModShardLauncher)（原 WPF 版）的**重构版**：保留原有的 `Msl` modding API、`.sml` 包格式与旧模组兼容层，界面由 WPF 迁移到 Avalonia，工程拆分为 Core / GUI / CLI 三个项目。
+
+- 本项目地址：<https://github.com/stoneshard-mods/ModShardLauncher.Avalonia>
+- 原项目地址：<https://github.com/ModShardTeam/ModShardLauncher>
+- 本仓库是可运行的迁移实现，不是原项目的官方分支；遇到界面/构建问题请反馈到本仓库。
+
 ## 功能
 
 - 打开原版 `data.win`，扫描 `Mods/*.sml`，启用/禁用模组，打补丁并另存为新文件。

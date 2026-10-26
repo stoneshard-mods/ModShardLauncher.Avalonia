@@ -478,7 +478,11 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [RelayCommand]
     public Task ShowAboutAsync() => _services.Dialogs.ShowInfoAsync(
         LocalizationService.Instance["AboutTitle"],
-        LocalizationService.Instance.Format("AboutText", AppInfo.MslVersion, AppInfo.UtmtLibVersion));
+        LocalizationService.Instance.Format("AboutText", AppInfo.MslVersion, AppInfo.UtmtLibVersion),
+        [
+            new DialogLink(LocalizationService.Instance["AboutProjectLabel"], AppInfo.RepositoryUrl),
+            new DialogLink(LocalizationService.Instance["AboutLinkLabel"], AppInfo.SourceRepositoryUrl),
+        ]);
 
     [RelayCommand]
     private void ClearLog()

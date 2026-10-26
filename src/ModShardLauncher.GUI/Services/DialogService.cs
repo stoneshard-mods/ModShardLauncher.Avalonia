@@ -115,14 +115,15 @@ public sealed class DialogService
         await dialog.ShowDialog(_owner);
     }
 
-    public async Task ShowInfoAsync(string title, string message)
+    /// <param name="links">Optional URLs shown as clickable links, e.g. the project pages.</param>
+    public async Task ShowInfoAsync(string title, string message, IReadOnlyList<DialogLink>? links = null)
     {
         if (_owner is null)
         {
             return;
         }
 
-        MessageDialog dialog = new(title, message, confirm: false);
+        MessageDialog dialog = new(title, message, confirm: false, links);
         await dialog.ShowDialog(_owner);
     }
 

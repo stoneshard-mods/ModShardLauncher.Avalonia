@@ -42,11 +42,15 @@ internal static class CliApplication
 
         AppPaths.EnsureCreated();
 
+        string logFile = Path.Combine(AppPaths.LogsDirectory, $"cli_{DateTime.Now:yyyyMMdd_HHmmss}.log");
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Information()
             .WriteTo.Console(outputTemplate: "[{Level:u3}] {Message:lj}{NewLine}{Exception}")
-            .WriteTo.File(Path.Combine(AppPaths.LogsDirectory, $"cli_{DateTime.Now:yyyyMMdd_HHmmss}.log"))
+            .WriteTo.File(logFile)
             .CreateLogger();
+
+        // Older runs leave one file each; keep the folder capped at the newest ones.
+        LogRetention.Prune(AppPaths.LogsDirectory, keep: logFile);
 
         Log.Information("User data folder: {Directory}", AppPaths.DataDirectory);
         foreach (string item in migrated)

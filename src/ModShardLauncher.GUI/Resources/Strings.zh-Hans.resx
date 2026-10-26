@@ -96,7 +96,6 @@ UndertaleModTool {1}
   <data name="MenuReload" xml:space="preserve"><value>重新加载模组</value></data>
   <data name="SourcesCount" xml:space="preserve"><value>{0} 个项目</value></data>
   <data name="SettingsPaths" xml:space="preserve"><value>文件夹</value></data>
-  <data name="MenuHelp" xml:space="preserve"><value>帮助</value></data>
   <data name="CommonOff" xml:space="preserve"><value>关</value></data>
   <data name="DialogOk" xml:space="preserve"><value>确定</value></data>
   <data name="HomeStatsSources" xml:space="preserve"><value>模组源码</value></data>
@@ -105,6 +104,8 @@ UndertaleModTool {1}
   <data name="ModStatusIdle" xml:space="preserve"><value>待处理</value></data>
   <data name="SourcesEmptyHint" xml:space="preserve"><value>在 ModSources 中创建模组工程后重新加载。</value></data>
   <data name="AboutTitle" xml:space="preserve"><value>关于 ModShardLauncher</value></data>
+  <data name="AboutLinkLabel" xml:space="preserve"><value>原项目地址（本项目基于它重构）：</value></data>
+  <data name="AboutProjectLabel" xml:space="preserve"><value>本项目地址：</value></data>
   <data name="StatusLoaded" xml:space="preserve"><value>已加载 {0}</value></data>
   <data name="MenuFile" xml:space="preserve"><value>文件</value></data>
   <data name="ModsEmpty" xml:space="preserve"><value>未找到模组</value></data>

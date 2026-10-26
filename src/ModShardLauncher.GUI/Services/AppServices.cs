@@ -56,11 +56,15 @@ public sealed class AppServices
         AppPaths.EnsureCreated();
 
         UiLogSink logSink = new();
+        string logFile = Path.Combine(AppPaths.LogsDirectory, $"log_{DateTime.Now:yyyyMMdd_HHmm}.txt");
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Debug()
-            .WriteTo.File(Path.Combine(AppPaths.LogsDirectory, $"log_{DateTime.Now:yyyyMMdd_HHmm}.txt"))
+            .WriteTo.File(logFile)
             .WriteTo.Sink(logSink)
             .CreateLogger();
+
+        // Older launches leave one file each; keep the folder capped at the newest ones.
+        LogRetention.Prune(AppPaths.LogsDirectory, keep: logFile);
 
         Log.Information("Using user data folder {Directory}", AppPaths.DataDirectory);
         foreach (string item in migrated)

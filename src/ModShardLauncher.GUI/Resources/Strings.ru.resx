@@ -96,7 +96,6 @@ UndertaleModTool {1}
   <data name="MenuReload" xml:space="preserve"><value>Перезагрузить моды</value></data>
   <data name="SourcesCount" xml:space="preserve"><value>{0} проектов</value></data>
   <data name="SettingsPaths" xml:space="preserve"><value>Папки</value></data>
-  <data name="MenuHelp" xml:space="preserve"><value>Справка</value></data>
   <data name="CommonOff" xml:space="preserve"><value>Выкл</value></data>
   <data name="DialogOk" xml:space="preserve"><value>ОК</value></data>
   <data name="HomeStatsSources" xml:space="preserve"><value>Исходники</value></data>
@@ -105,6 +104,8 @@ UndertaleModTool {1}
   <data name="ModStatusIdle" xml:space="preserve"><value>ожидание</value></data>
   <data name="SourcesEmptyHint" xml:space="preserve"><value>Создайте проект в ModSources и перезагрузите.</value></data>
   <data name="AboutTitle" xml:space="preserve"><value>О ModShardLauncher</value></data>
+  <data name="AboutLinkLabel" xml:space="preserve"><value>Исходный проект (эта сборка — его рефакторинг):</value></data>
+  <data name="AboutProjectLabel" xml:space="preserve"><value>Этот проект:</value></data>
   <data name="StatusLoaded" xml:space="preserve"><value>Загружено {0}</value></data>
   <data name="MenuFile" xml:space="preserve"><value>Файл</value></data>
   <data name="ModsEmpty" xml:space="preserve"><value>Моды не найдены</value></data>
