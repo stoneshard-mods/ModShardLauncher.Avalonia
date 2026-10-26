@@ -43,7 +43,10 @@ public sealed class GameDataService
     {
         try
         {
-            await Task.Run(() => LoadCore(path), cancellationToken).ConfigureAwait(false);
+            using (PatchTimings.Measure("load"))
+            {
+                await Task.Run(() => LoadCore(path), cancellationToken).ConfigureAwait(false);
+            }
         }
         catch
         {
@@ -55,8 +58,11 @@ public sealed class GameDataService
     /// <summary>Writes the patched data to <paramref name="path"/> using a temp file and an atomic replace.</summary>
     public async Task SaveAsync(string path, CancellationToken cancellationToken = default)
     {
-        await Task.Run(() => SaveCore(path), cancellationToken).ConfigureAwait(false);
-        SavedDataPath = path;
+        using (PatchTimings.Measure("save"))
+        {
+            await Task.Run(() => SaveCore(path), cancellationToken).ConfigureAwait(false);
+            SavedDataPath = path;
+        }
     }
 
     /// <summary>Dumps the loaded data for code exploration (same output as the WPF build).</summary>

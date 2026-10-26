@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using ModShardLauncher.Mods;
+using Serilog;
 using UndertaleModLib;
 using UndertaleModLib.Compiler;
 using UndertaleModLib.Decompiler;
@@ -67,6 +69,71 @@ public static class MslContext
     internal static GlobalDecompileContext DecompilerCache =>
         _decompilerCache ?? throw new InvalidOperationException("No game data (data.win) is currently loaded.");
 
+    /// <summary>
+    /// Decompiled text of every code entry read during the current data file's lifetime.
+    /// <para>
+    /// The decompiler writes the warnings it collected while resolving member variable names as
+    /// <c>/* ... */</c> comment blocks at the <b>top</b> of the returned text, and those warnings only
+    /// appear while its caches are cold. Reusing one <see cref="GlobalDecompileContext"/> (see
+    /// <see cref="DecompilerCache"/>) therefore used to make the same script decompile to two
+    /// different texts: the first reader got the warning header, every later one did not. The code
+    /// body is identical in both, but the header shifts every line number, which silently moves
+    /// anchors for mods that patch by position, and makes a patch depend on mod order.
+    /// </para>
+    /// <para>
+    /// Caching the first result makes a script's text stable for the whole run, which is what the
+    /// previous one-context-per-call code produced. Entries are dropped as soon as the code entry is
+    /// rewritten (<see cref="InvalidateDecompiledText"/>), so a later read still observes the patch.
+    /// </para>
+    /// </summary>
+    private static readonly Dictionary<UndertaleCode, string> DecompiledText = new();
+
+    /// <summary>Decompiles <paramref name="code"/> once and returns the same text for every later read.</summary>
+    internal static string DecompileText(UndertaleCode code)
+    {
+        if (DecompiledText.TryGetValue(code, out string? cached))
+        {
+            PatchTimings.Record("decompile-cached", 0);
+            Log.Debug("GML decompile {File}: cached, {Length} chars", NameOf(code), cached.Length);
+            return cached;
+        }
+
+        long start = Stopwatch.GetTimestamp();
+        string text = Decompiler.Decompile(code, DecompilerCache);
+        double elapsed = Stopwatch.GetElapsedTime(start).TotalMilliseconds;
+
+        DecompiledText[code] = text;
+        PatchTimings.Record($"decompile:{NameOf(code)}", elapsed);
+        Log.Debug("GML decompile {File}: {Elapsed} ms, {Length} chars", NameOf(code), elapsed, text.Length);
+        return text;
+    }
+
+    /// <summary>
+    /// Drops the cached text of a code entry that was just rewritten, together with its child
+    /// entries (a GML rewrite rebuilds them, so the old ones are dead).
+    /// </summary>
+    internal static void InvalidateDecompiledText(UndertaleCode? code)
+    {
+        if (code is null || DecompiledText.Count == 0)
+        {
+            return;
+        }
+
+        DecompiledText.Remove(code);
+
+        if (code.ChildEntries.Count == 0)
+        {
+            return;
+        }
+
+        foreach (UndertaleCode stale in DecompiledText.Keys.Where(x => x.ParentEntry == code).ToArray())
+        {
+            DecompiledText.Remove(stale);
+        }
+    }
+
+    private static string NameOf(UndertaleCode code) => code.Name?.Content ?? "<unnamed>";
+
     /// <summary>Legacy callback storage; kept only for binary compatibility (the script console was removed).</summary>
     public static Dictionary<string, Action<string>> ScriptCallbacks => ModLoader.ScriptCallbacks;
 
@@ -109,6 +176,7 @@ public static class MslContext
         LootTableRegistry.ResetLootTables();
         UndertaleIO.IsDictionaryCleared = false;
         _decompilerCache = null;
+        DecompiledText.Clear();
     }
 
     internal static void AddCredit(string modNameShort, string[] authors) =>

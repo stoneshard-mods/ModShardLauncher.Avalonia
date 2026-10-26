@@ -56,6 +56,7 @@ namespace ModShardLauncher
         {
             UndertaleCode originalCode = GetUMTCodeFromFile(fileName);
             originalCode.Replace(Assembler.Assemble(codeAsString, MslContext.Data));
+            MslContext.InvalidateDecompiledText(originalCode);
         }
         public static void InsertAssemblyString(string codeAsString, string fileName, int position)
         {

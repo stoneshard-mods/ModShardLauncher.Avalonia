@@ -48,12 +48,14 @@ public static class GameTableCodec
     /// </summary>
     public static void SetTable(List<string> table, string name)
     {
+        using PatchTimings.Scope timing = PatchTimings.Measure($"table:{name}");
+
         string serialized = JsonConvert.SerializeObject(table).Replace("\n", "");
         UndertaleCode target = MslContext.Data.Code.First(t => t.Name.Content == name);
-        GlobalDecompileContext context = MslContext.DecompilerCache;
-        string text = Decompiler.Decompile(target, context);
+        string text = MslContext.DecompileText(target);
         text = Regex.Replace(text, "\\[.*\\]", serialized);
         target.ReplaceGML(text, MslContext.Data);
+        MslContext.InvalidateDecompiledText(target);
 
         SyncSnapshot(table, name);
         Log.Information("Successfully set table: {0}", name);

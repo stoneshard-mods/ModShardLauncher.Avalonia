@@ -83,6 +83,37 @@ dotnet test tests/ModShardLauncher.Tests --filter "FullyQualifiedName~PatchBasel
 - 全程约 3 分钟（每个场景跑两遍）。`MSL_BASELINE_SCENARIOS=base` 可只跑基础场景；`MSL_REQUIRE_BASELINE=1` 让“基线缺失”直接失败。
 - `loot` 场景在当前游戏版本会报告“锚点失效”并跳过：`InjectLootScripts` 依赖的 `script_execute` 行已不在 `gml_Object_c_container_Other_10` 里。
 
+### 补丁性能度量（可选，需要原版 data.win）
+
+耗时几乎全部集中在“某个大脚本的首次冷反编译”和“保存 160 MB 的 data.win”上，所以单次运行的数字没有比较意义；请用中位数。
+
+```powershell
+# 同一输入打 3 次补丁，先校验三次产物字节完全一致，再输出各阶段耗时中位数
+.\scripts\measure-patch.ps1 -Data "C:\Program Files (x86)\Steam\steamapps\common\Stoneshard\original.win" -Runs 3
+```
+
+- CLI 可用 `--timings <file>` 导出一次运行的分段耗时 JSON；
+- GUI 每次打补丁后把同一份 JSON 写到 `%LOCALAPPDATA%\ModShardLauncher\logs\timings_<时间>.json`，并在日志面板输出一行 `Timings: load …s, patch …s, save …s`；
+- 阶段名：`load` / `pipeline` / `save` 为顶层；`mod:<名字>` 是单个模组的总耗时，其内部再细分为 `decompile:<脚本>`、`compile:<脚本>`、`table:<表>`、`textures:<mod>`；`decompile-cached` 表示命中了反编译文本缓存。
+
+反编译文本在**代码未被改写期间**只计算一次（`MslContext.DecompileText`）：同一个脚本在一次打补丁过程中被反复读取会得到完全相同的文本（否则反编译器会把只在首次出现、写在文本开头的警告注释加进去，导致行号漂移，按位置打补丁的 mod 会跟着 mod 顺序变化）。任何写入——`.Save()`、`SetStringGMLInFile`、`SetTable`、`SetAssemblyString`——都会立刻让对应缓存失效，因此补丁结果不受影响。
+
+当前基线（`Release`，同一台机器，5 个 mod，3 次取中位数；三次产物 SHA-256 均为 `7D398D4F…62EC0`，墙钟 101.1 / 101.8 / 101.3 秒）：
+
+| 阶段 | 中位数 |
+|---|---|
+| 加载 data.win | 6.3 s |
+| 基础补丁（其中 `o_gameLoader_Create_0` 首次反编译 16.1 s，主要是构建子函数缓存） | ~16.4 s |
+| Quick_Backpack | 60.1 s |
+| ├ `o_context_button_Mouse_4` 首次反编译 | **46.9 s** |
+| └ `scr_create_context_menu` | 7.8 s |
+| Attribute_Management / Map_TP / Rusty_Backpack / Rusty_BackDrag | 3.4 / 1.8 / 1.8 / 0.8 s |
+| 免责声明房间 + 菜单 | ~1.5 s |
+| 保存（160 MB） | 8.9 s |
+| **合计** | **101.1 s** |
+
+结论很明确：时间不在“mod 数量”或“脚本大小”上，而在**某一个大脚本在其反编译器缓存冷启动时的首次反编译**（46.9 s）和**一次性的子函数缓存构建**（约 15.9 s）。这两项都是一次性、可复用的数据，是后续优化的目标。
+
 > 用户数据目录：`Settings.json`、`Mods/`、`ModSources/`、`logs/` 全部保存在 **`%LOCALAPPDATA%\ModShardLauncher`**，与安装目录分离，升级或重装程序不会改动模组和设置。旧版放在程序目录（工作目录）里的同名文件/文件夹会在首次启动时自动迁移到新目录；CLI 可用 `--data-dir` 指定其他数据目录。便携模式不再保留。
 
 ## 发布（多文件 self-contained，两个 exe 同一目录）
@@ -138,6 +169,7 @@ dotnet publish src/ModShardLauncher.CLI/ModShardLauncher.CLI.csproj `
 ```text
 ModShardLauncher.CLI.exe patch   --data <vanilla.win> --output <patched.win>
                                  [--mods <dir>] [--enable name1,name2 | --all]
+                                 [--timings <file>]
 ModShardLauncher.CLI.exe list    [--mods <dir>]
 ModShardLauncher.CLI.exe compile --source <project-dir> [--mods <dir>]
 ModShardLauncher.CLI.exe export  --data <vanilla.win> --type items|codes|presets

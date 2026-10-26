@@ -186,9 +186,7 @@ namespace ModShardLauncher
         public static string GetStringGMLFromFile(string fileName)
         {
             UndertaleCode code = GetUMTCodeFromFile(fileName);
-            GlobalDecompileContext context = MslContext.DecompilerCache;
-
-            return Decompiler.Decompile(code, context);
+            return MslContext.DecompileText(code);
         }
         /// <summary>
         /// Set the UndertaleCode in <paramref name="fileName"/> as <paramref name="codeAsString"/>.
@@ -197,6 +195,7 @@ namespace ModShardLauncher
         {
             UndertaleCode code = GetUMTCodeFromFile(fileName);
             code.ReplaceGML(codeAsString, MslContext.Data);
+            MslContext.InvalidateDecompiledText(code);
         }
         /// <summary>
         /// Insert GML <paramref name="codeAsString"/> from a string in <paramref name="fileName"/> at a given <paramref name="position"/>.

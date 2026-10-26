@@ -29,6 +29,8 @@ public sealed class TextureInjector
     /// <summary>Injects every texture of <paramref name="mod"/> into the currently attached game data.</summary>
     public void Inject(ModFile mod)
     {
+        using PatchTimings.Scope timing = PatchTimings.Measure($"textures:{mod.Name}");
+
         List<TextureSource> sources = TextureSourceScanner.Scan(mod, AtlasSize);
         try
         {

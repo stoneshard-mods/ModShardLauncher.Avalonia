@@ -696,6 +696,10 @@ namespace ModShardLauncher
                     case PatchingWay.GML:
                         long compileStart = Stopwatch.GetTimestamp();
                         fe.header.originalCode.ReplaceGML(newCode, MslContext.Data);
+                        // The code entry changed: a later read must decompile it again.
+                        MslContext.InvalidateDecompiledText(fe.header.originalCode);
+                        double compileMs = ElapsedMs(joinStart, Stopwatch.GetTimestamp());
+                        PatchTimings.Record($"compile:{fe.header.fileName}", compileMs);
                         Log.Debug("GML compile {File}: join {Join} ms, compile {Compile} ms",
                             fe.header.fileName, ElapsedMs(joinStart, joinDone), ElapsedMs(compileStart, Stopwatch.GetTimestamp()));
                         break;
@@ -705,6 +709,8 @@ namespace ModShardLauncher
                         string newLocalVarsAsString = AssemblyWrapper.CreateLocalVarAssemblyAsString(fe.header.originalCode);
                         newCode = newCode.Insert(newCode.IndexOf('\n') + 1, newLocalVarsAsString);
                         fe.header.originalCode.Replace(Assembler.Assemble(newCode, MslContext.Data));
+                        MslContext.InvalidateDecompiledText(fe.header.originalCode);
+                        PatchTimings.Record($"compile:{fe.header.fileName}", ElapsedMs(joinStart, Stopwatch.GetTimestamp()));
                         break;
 
                     default:

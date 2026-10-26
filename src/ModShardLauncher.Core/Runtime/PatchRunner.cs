@@ -36,6 +36,7 @@ public sealed class PatchRunner
         }
 
         System.Diagnostics.Stopwatch stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        using PatchTimings.Scope pipelineTiming = PatchTimings.Measure("pipeline");
         try
         {
             GameLogInjection.InjectLog();
@@ -88,6 +89,10 @@ public sealed class PatchRunner
 
             mod.PatchStatus = PatchStatus.Patching;
             Log.Information("Applying mod {Name} {Version}", mod.Name, mod.Version);
+
+            // Deliberately wraps the whole mod (textures included): the stage answers "which mod is
+            // expensive", while the decompile/compile/table stages break that cost down further.
+            using PatchTimings.Scope modTiming = PatchTimings.Measure($"mod:{mod.Name}");
 
             if (mod.Version != AppInfo.MslVersion)
             {

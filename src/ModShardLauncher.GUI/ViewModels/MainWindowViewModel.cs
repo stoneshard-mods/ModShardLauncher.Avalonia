@@ -207,80 +207,126 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
         await RunBusyAsync("StatusPatching", async () =>
         {
-            await ReloadPatchedDataAsync();
-
-            Log.Information("Patching {Count} enabled mod(s)", _services.Catalog.Mods.Count(m => m.Enabled));
-
-            PatchDiagnostic? diagnostic;
+            PatchTimings.Reset();
             try
             {
-                // Keep the UI thread free so the log panel streams the patch progress.
-                diagnostic = await Task.Run(() => _services.Patcher.Patch(_services.Catalog.Mods));
+                await PatchAndSaveCoreAsync();
             }
-            catch (Exception ex)
+            finally
             {
-                // The pipeline may have touched the data before throwing.
-                _dataNeedsReload = true;
-
-                // The legacy code lets this path escape; keep the app alive and report it.
-                Log.Error(ex, "Patching failed");
-                await _services.Dialogs.ShowErrorAsync(
-                    LocalizationService.Instance["DialogErrorTitle"],
-                    ex.Message,
-                    ex.ToString());
-                SetStatus("StatusPatchFailed");
-                return;
+                // Written even when the patch failed: a failed run still shows where the time went.
+                WritePatchTimings();
             }
+        });
+    }
 
-            // Even a failed run leaves the loaded data partially patched (and a successful one is
-            // fully patched), so it can never be reused. The reload happens lazily, before the next
-            // patch, instead of making the user wait ~6 seconds for a file they may not patch again.
+    private async Task PatchAndSaveCoreAsync()
+    {
+        await ReloadPatchedDataAsync();
+
+        Log.Information("Patching {Count} enabled mod(s)", _services.Catalog.Mods.Count(m => m.Enabled));
+
+        PatchDiagnostic? diagnostic;
+        try
+        {
+            // Keep the UI thread free so the log panel streams the patch progress.
+            diagnostic = await Task.Run(() => _services.Patcher.Patch(_services.Catalog.Mods));
+        }
+        catch (Exception ex)
+        {
+            // The pipeline may have touched the data before throwing.
             _dataNeedsReload = true;
 
-            if (diagnostic is null)
-            {
-                Log.Information("Successfully patch vanilla");
-                string? destination = await _services.Dialogs.PickSaveDataFileAsync(_services.GameData.DataPath);
-                if (destination is not null)
-                {
-                    if (IsSameFile(destination, _services.GameData.DataPath))
-                    {
-                        // Never overwrite the vanilla file that is currently loaded; the user
-                        // still needs it for the next patch run.
-                        Log.Warning("Refusing to overwrite the source data file {Path}", destination);
-                        await _services.Dialogs.ShowErrorAsync(
-                            LocalizationService.Instance["DialogErrorTitle"],
-                            LocalizationService.Instance["SaveOverwriteSourceError"]);
-                        SetStatus("StatusReady");
-                    }
-                    else
-                    {
-                        Log.Information("Saving patched data to {Path}", destination);
-                        await _services.GameData.SaveAsync(destination);
-                        string? directory = Path.GetDirectoryName(destination);
-                        if (directory is not null)
-                        {
-                            LootTableRegistry.SaveLootTables(directory);
-                        }
+            // The legacy code lets this path escape; keep the app alive and report it.
+            Log.Error(ex, "Patching failed");
+            await _services.Dialogs.ShowErrorAsync(
+                LocalizationService.Instance["DialogErrorTitle"],
+                ex.Message,
+                ex.ToString());
+            SetStatus("StatusPatchFailed");
+            return;
+        }
 
-                        SetStatus("StatusSaved", Path.GetFileName(destination));
-                    }
+        // Even a failed run leaves the loaded data partially patched (and a successful one is
+        // fully patched), so it can never be reused. The reload happens lazily, before the next
+        // patch, instead of making the user wait ~6 seconds for a file they may not patch again.
+        _dataNeedsReload = true;
+
+        if (diagnostic is null)
+        {
+            Log.Information("Successfully patch vanilla");
+            string? destination = await _services.Dialogs.PickSaveDataFileAsync(_services.GameData.DataPath);
+            if (destination is not null)
+            {
+                if (IsSameFile(destination, _services.GameData.DataPath))
+                {
+                    // Never overwrite the vanilla file that is currently loaded; the user
+                    // still needs it for the next patch run.
+                    Log.Warning("Refusing to overwrite the source data file {Path}", destination);
+                    await _services.Dialogs.ShowErrorAsync(
+                        LocalizationService.Instance["DialogErrorTitle"],
+                        LocalizationService.Instance["SaveOverwriteSourceError"]);
+                    SetStatus("StatusReady");
                 }
                 else
                 {
-                    Log.Information("Saved cancelled.");
-                    SetStatus("StatusReady");
+                    Log.Information("Saving patched data to {Path}", destination);
+                    await _services.GameData.SaveAsync(destination);
+                    string? directory = Path.GetDirectoryName(destination);
+                    if (directory is not null)
+                    {
+                        LootTableRegistry.SaveLootTables(directory);
+                    }
+
+                    SetStatus("StatusSaved", Path.GetFileName(destination));
                 }
             }
             else
             {
-                Log.Information("Failed patching vanilla");
-                await _services.Dialogs.ShowErrorAsync(diagnostic.Title, diagnostic.Summary, diagnostic.Details);
-                SetStatus("StatusPatchFailed");
+                Log.Information("Saved cancelled.");
+                SetStatus("StatusReady");
             }
+        }
+        else
+        {
+            Log.Information("Failed patching vanilla");
+            await _services.Dialogs.ShowErrorAsync(diagnostic.Title, diagnostic.Summary, diagnostic.Details);
+            SetStatus("StatusPatchFailed");
+        }
 
-            await ReloadCatalogCoreAsync();
-        });
+        await ReloadCatalogCoreAsync();
+    }
+
+    /// <summary>
+    /// Writes the stage breakdown next to the log files and surfaces a one line summary, so a slow
+    /// patch can be diagnosed after the fact instead of by re-running with a debugger.
+    /// </summary>
+    private void WritePatchTimings()
+    {
+        if (PatchTimings.IsEmpty)
+        {
+            return;
+        }
+
+        Log.Debug("{Timings}", PatchTimings.ToSummary());
+
+        string suffix = string.Empty;
+        try
+        {
+            Directory.CreateDirectory(AppPaths.LogsDirectory);
+            string path = Path.Combine(
+                AppPaths.LogsDirectory,
+                $"timings_{DateTime.Now:yyyyMMdd_HHmmss}.json");
+            File.WriteAllText(path, PatchTimings.ToJson());
+            suffix = $" (details: logs/{Path.GetFileName(path)})";
+        }
+        catch (Exception ex)
+        {
+            // Timing output must never fail a patch run.
+            Log.Warning(ex, "Cannot write the patch timings file");
+        }
+
+        Log.Information("{Timings}{Details}", PatchTimings.ToCompactSummary(), suffix);
     }
 
     /// <summary>

@@ -10,6 +10,8 @@ internal static class CliCommands
         string dataPath = arguments.Require("data");
         string outputPath = arguments.Require("output");
 
+        PatchTimings.Reset();
+
         GameDataService gameData = new();
         await gameData.LoadAsync(dataPath);
 
@@ -54,6 +56,16 @@ internal static class CliCommands
 
         Log.Information("Patched {Count} mod(s) into {Output}", enabledCount, outputPath);
         Console.WriteLine($"Patched {enabledCount} mod(s) into {outputPath}");
+
+        Log.Debug("{Timings}", PatchTimings.ToSummary());
+        if (arguments.Get("timings") is { } timingsPath)
+        {
+            string fullPath = Path.GetFullPath(timingsPath);
+            File.WriteAllText(fullPath, PatchTimings.ToJson());
+            Console.WriteLine(PatchTimings.ToSummary());
+            Console.WriteLine($"Timings written to {fullPath}");
+        }
+
         return 0;
     }
 

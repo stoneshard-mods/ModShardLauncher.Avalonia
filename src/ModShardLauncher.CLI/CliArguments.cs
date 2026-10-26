@@ -124,6 +124,7 @@ internal sealed class CliArguments
               --mods <dir>          Mods directory (default: <data-dir>/Mods)
               --enable name1,name2  Enable only these mods
               --all                 Enable every installed mod
+              --timings <file>      Write the load/patch/save stage breakdown as JSON
 
             Global options:
               --data-dir <dir>  Override the user data folder

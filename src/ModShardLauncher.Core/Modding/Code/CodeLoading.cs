@@ -20,22 +20,14 @@ namespace ModShardLauncher
         {
             UndertaleCode code = GetUMTCodeFromFile(fileName);
 
-            long start = Stopwatch.GetTimestamp();
-            GlobalDecompileContext context = MslContext.DecompilerCache;
-            long contextDone = Stopwatch.GetTimestamp();
-            string[] lines = Decompiler.Decompile(code, context).Split("\n");
-            long decompileDone = Stopwatch.GetTimestamp();
-
-            Log.Debug("GML decompile {File}: context {Context} ms, decompile {Decompile} ms",
-                fileName, ElapsedMs(start, contextDone), ElapsedMs(contextDone, decompileDone));
-
+            // Split a fresh array each call: the cached text is shared, the line sequence is not.
             return new(
                 new(
                     fileName,
                     code,
                     PatchingWay.GML
                 ),
-                lines
+                MslContext.DecompileText(code).Split("\n")
             );
         }
         /// <summary>Milliseconds between two <see cref="Stopwatch"/> timestamps.</summary>
