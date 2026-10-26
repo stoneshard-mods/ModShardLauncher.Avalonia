@@ -57,6 +57,8 @@ Not affiliated with Ink Stains Games.</value></data>
   <data name="ModsCount" xml:space="preserve"><value>{0} mods</value></data>
   <data name="StatusReady" xml:space="preserve"><value>Ready</value></data>
   <data name="StatusFailed" xml:space="preserve"><value>Operation failed</value></data>
+  <data name="StatusCancelled" xml:space="preserve"><value>Cancelled</value></data>
+  <data name="StatusCancelling" xml:space="preserve"><value>Cancelling…</value></data>
   <data name="SettingsLanguage" xml:space="preserve"><value>Language</value></data>
   <data name="DialogErrorTitle" xml:space="preserve"><value>Something went wrong</value></data>
   <data name="SettingsOpen" xml:space="preserve"><value>Open</value></data>

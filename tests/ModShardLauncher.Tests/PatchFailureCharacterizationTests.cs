@@ -4,9 +4,13 @@ using Xunit.Abstractions;
 namespace ModShardLauncherTest;
 
 /// <summary>
-/// Locks down how the patch pipeline behaves today when it is run twice or when a mod throws.
-/// These tests describe known defects on purpose: the assertions must be updated together with
-/// the fix (P1), never deleted silently. Requires <c>MSL_TEST_DATA</c>.
+/// Locks down how the patch pipeline behaves on inputs it must refuse.
+/// <para>
+/// These started as "known defect" tests: patching the same data twice used to inject the log hook
+/// again and only then fail on the existing event, leaving a duplicate behind. The pipeline now
+/// refuses an already patched file before writing anything, so the assertions below describe the
+/// fixed behaviour (and the duplicate-injection defect stays pinned by the marker count).
+/// </para>
 /// </summary>
 [Collection(GameDataCollection.Name)]
 public class PatchFailureCharacterizationTests
@@ -16,12 +20,11 @@ public class PatchFailureCharacterizationTests
     public PatchFailureCharacterizationTests(ITestOutputHelper output) => _output = output;
 
     /// <summary>
-    /// Known defect (P1): patching the same UndertaleData twice injects the log hook a second time
-    /// and only then fails, because the objects/events already exist. The failure is therefore not
-    /// side-effect free, which is why the GUI reloads the vanilla file after every attempt.
+    /// Patching an already patched data file must fail <b>before</b> touching it: no second log hook,
+    /// and an actionable message instead of "an event with this subtype already exists".
     /// </summary>
     [Fact]
-    public async Task SecondPatchOnTheSameData_InjectsTheLogHookAgainBeforeFailing()
+    public async Task SecondPatchOnTheSameData_FailsBeforeWritingAnything()
     {
         string? dataPath = PatchBaselineSupport.TryGetDataPath();
         if (dataPath is null)
@@ -41,13 +44,14 @@ public class PatchFailureCharacterizationTests
         Assert.Equal(1, PatchBaselineSupport.CountOccurrences(loaderAfterFirst, PatchBaselineSupport.LogHookMarker));
 
         PatchDiagnostic? second = new PatchRunner().Patch(Array.Empty<ModFile>());
-        Assert.True(
-            second is not null,
-            "the second patch is expected to fail while adding events that already exist; " +
-            "if this now succeeds, idempotency was implemented and this test should assert equality instead");
+        Assert.NotNull(second);
+        Assert.IsType<InvalidOperationException>(second!.Exception);
+        Assert.Contains("already contains", second.Exception!.Message, StringComparison.Ordinal);
+        Assert.Contains("already patched", second.Exception.Message, StringComparison.Ordinal);
 
+        // The failure must be side-effect free: the hook must not have been injected a second time.
         string loaderAfterSecond = Msl.GetStringGMLFromFile(PatchBaselineSupport.LoaderCreateEvent);
-        Assert.Equal(2, PatchBaselineSupport.CountOccurrences(loaderAfterSecond, PatchBaselineSupport.LogHookMarker));
+        Assert.Equal(1, PatchBaselineSupport.CountOccurrences(loaderAfterSecond, PatchBaselineSupport.LogHookMarker));
     }
 
     /// <summary>
@@ -87,9 +91,32 @@ public class PatchFailureCharacterizationTests
     }
 
     /// <summary>
-    /// <see cref="LootTableRegistry"/> is not reset by <see cref="PatchRunner"/>, so a second patch
-    /// on the same data would throw on the duplicate id. Pinned here because the P1 fix resets it.
+    /// <see cref="LootTableRegistry"/> is per patch run: the pipeline clears it before running the
+    /// mods, so a retry in place cannot throw on the duplicate id.
     /// </summary>
+    [Fact]
+    public void ResetPatchState_ClearsTheLootRegistry()
+    {
+        LootTableRegistry.ResetLootTables();
+        try
+        {
+            ItemsTable items = new(["item"], [1], [1]);
+            RandomItemsTable random = new([1], items);
+            Msl.AddLootTable("reset_marker", items, randomLootMin: 1, randomLootMax: 1, emptyWeight: 0, random);
+            Assert.Single(LootTableRegistry.LootTables);
+
+            MslContext.ResetPatchState();
+
+            Assert.Empty(LootTableRegistry.LootTables);
+            Assert.Empty(LootTableRegistry.ReferenceTables);
+        }
+        finally
+        {
+            LootTableRegistry.ResetLootTables();
+        }
+    }
+
+    /// <summary>A duplicate id inside one run is still a programming error and must throw.</summary>
     [Fact]
     public void LootTableRegistry_RejectsDuplicateIds()
     {

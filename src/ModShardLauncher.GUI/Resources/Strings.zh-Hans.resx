@@ -57,6 +57,8 @@ UndertaleModTool {1}
   <data name="ModsCount" xml:space="preserve"><value>{0} 个模组</value></data>
   <data name="StatusReady" xml:space="preserve"><value>就绪</value></data>
   <data name="StatusFailed" xml:space="preserve"><value>操作失败</value></data>
+  <data name="StatusCancelled" xml:space="preserve"><value>已取消</value></data>
+  <data name="StatusCancelling" xml:space="preserve"><value>正在取消…</value></data>
   <data name="SettingsLanguage" xml:space="preserve"><value>语言</value></data>
   <data name="DialogErrorTitle" xml:space="preserve"><value>出错了</value></data>
   <data name="SettingsOpen" xml:space="preserve"><value>打开</value></data>

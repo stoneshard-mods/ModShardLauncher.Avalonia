@@ -13,15 +13,31 @@ namespace ModShardLauncher;
 /// working, while still allowing recent ones; every other dependency is resolved from the
 /// application folder or the default context.
 /// </para>
+/// <para>
+/// The runtime refuses to load two assemblies with the same identity into the <b>same</b> context
+/// ("Assembly with same name is already loaded"), so recompiling a mod and reloading it used to make
+/// the mod disappear from the list with a <see cref="FileLoadException"/>. Each package build
+/// therefore gets its own context through <see cref="CreateForPackage"/>; the shared
+/// <see cref="Instance"/> only serves unpacked callers.
+/// </para>
 /// </summary>
 public sealed class ModAssemblyLoadContext : AssemblyLoadContext
 {
-    public static ModAssemblyLoadContext Instance { get; } = new();
+    /// <summary>Shared context; kept for callers that do not need per-package isolation.</summary>
+    public static ModAssemblyLoadContext Instance { get; } = new("ModShardLauncher.Mods");
 
-    private ModAssemblyLoadContext()
-        : base("ModShardLauncher.Mods", isCollectible: false)
+    private ModAssemblyLoadContext(string name)
+        : base(name, isCollectible: false)
     {
     }
+
+    /// <summary>
+    /// Creates an isolated context for one package build. A new build of the same mod must not go
+    /// through the context of the previous build: its assembly identity is unchanged, so the runtime
+    /// would reject it.
+    /// </summary>
+    internal static ModAssemblyLoadContext CreateForPackage(string identity) =>
+        new($"ModShardLauncher.Mods/{identity}");
 
     protected override Assembly? Load(AssemblyName assemblyName)
     {

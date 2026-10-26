@@ -104,6 +104,10 @@
         <StackPanel Spacing="14">
           <TextBlock Text="{Binding BusyText}" HorizontalAlignment="Center" FontSize="14" />
           <ProgressBar IsIndeterminate="True" Height="4" />
+          <Button Content="{loc:Tr DialogCancel}"
+                  Command="{Binding CancelBusyCommand}"
+                  IsVisible="{Binding CanCancelBusy}"
+                  HorizontalAlignment="Center" />
         </StackPanel>
       </Border>
     </Border>

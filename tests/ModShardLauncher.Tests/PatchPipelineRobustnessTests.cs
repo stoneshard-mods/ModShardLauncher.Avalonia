@@ -105,6 +105,35 @@ public class PatchPipelineRobustnessTests
     }
 
     /// <summary>
+    /// Cancelling before the save starts must leave no output and no temp file behind, and must not
+    /// report a saved path.
+    /// </summary>
+    [Fact]
+    public async Task SaveAsync_WithACancelledToken_LeavesNothingBehind()
+    {
+        string? dataPath = PatchBaselineSupport.TryGetDataPath();
+        if (dataPath is null)
+        {
+            _output.WriteLine(PatchBaselineSupport.MissingDataMessage);
+            return;
+        }
+
+        using PatchTestWorkspace workspace = new();
+        GameDataService service = new();
+        await service.LoadAsync(dataPath);
+
+        using CancellationTokenSource cancellation = new();
+        cancellation.Cancel();
+
+        string target = workspace.File("cancelled.win");
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.SaveAsync(target, cancellation.Token));
+
+        Assert.False(File.Exists(target));
+        Assert.Empty(Directory.GetFiles(workspace.Root, "*.tmp"));
+        Assert.Equal(string.Empty, service.SavedDataPath);
+    }
+
+    /// <summary>
     /// Table snapshots and loot registrations belong to one data file. Loading another file must
     /// not observe the rows/ids of the previous one (a second patch would throw on duplicates).
     /// </summary>

@@ -16,7 +16,7 @@ public static class SmlPackageReader
     private const int MaxChunkNameLength = 4096;
     private const int MaxChunksPerTable = 100_000;
 
-    public static ModFile? Read(string path)
+    public static ModFile? Read(string path, ModAssemblyLoadContext? loadContext = null)
     {
         using FileStream stream = new(path, FileMode.Open, FileAccess.Read, FileShare.Read);
         string modName = Path.GetFileNameWithoutExtension(path);
@@ -97,7 +97,7 @@ public static class SmlPackageReader
         }
 
         int assemblyLength = ReadInt32(stream, "assembly length");
-        file.Assembly = ModAssemblyLoadContext.Instance.LoadMod(ReadBytes(stream, assemblyLength));
+        file.Assembly = (loadContext ?? ModAssemblyLoadContext.Instance).LoadMod(ReadBytes(stream, assemblyLength));
         file.Path = path;
 
         try

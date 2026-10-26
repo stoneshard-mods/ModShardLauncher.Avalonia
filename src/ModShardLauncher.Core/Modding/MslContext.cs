@@ -194,10 +194,16 @@ public static class MslContext
     internal static void AddMenu(string name, params UIComponent[] components) =>
         Menus.Add(new Menu(name, components));
 
+    /// <summary>
+    /// Drops everything one patch run populates. A pipeline that is started twice on the same loaded
+    /// data (or a run that is retried in place) must not inherit the previous run's menus, credits or
+    /// loot registrations: the loot registry would throw on the duplicate id.
+    /// </summary>
     internal static void ResetPatchState()
     {
         Menus = new List<Menu>();
         Credits = new List<(string, string[])>();
         Disclaimers = new List<(string, UndertaleRoom.GameObject)>();
+        LootTableRegistry.ResetLootTables();
     }
 }

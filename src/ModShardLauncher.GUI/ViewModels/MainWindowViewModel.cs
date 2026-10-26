@@ -38,6 +38,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     private int _logFlushScheduled;
 
+    /// <summary>Set while a cancellable operation runs; the busy overlay's cancel button drives it.</summary>
+    private CancellationTokenSource? _busyCancellation;
+
     public MainWindowViewModel(AppServices services)
     {
         _services = services;
@@ -107,6 +110,10 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [ObservableProperty]
     private bool _isLogVisible = true;
 
+    /// <summary>True while the running operation can be cancelled (the overlay shows its button).</summary>
+    [ObservableProperty]
+    private bool _canCancelBusy;
+
     public string VersionText => $"{AppInfo.ProductName} {AppInfo.MslVersion}";
 
     public string DataFileDisplay => DataFileName ?? LocalizationService.Instance["HomeNoData"];
@@ -172,6 +179,32 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [RelayCommand]
     private void ToggleLog() => IsLogVisible = !IsLogVisible;
 
+    /// <summary>
+    /// Asks the running operation to stop. The pipeline only stops between mods (and before the
+    /// data file is swapped in), so the button reports "cancelling" until it actually ends.
+    /// </summary>
+    [RelayCommand]
+    private void CancelBusy()
+    {
+        if (_busyCancellation is not { IsCancellationRequested: false } cancellation)
+        {
+            return;
+        }
+
+        Log.Information("Cancelling the running operation");
+        BusyText = LocalizationService.Instance["StatusCancelling"];
+
+        try
+        {
+            cancellation.Cancel();
+        }
+        catch (AggregateException ex)
+        {
+            // A throwing cancellation callback must not break the UI thread.
+            Log.Warning(ex, "A cancellation callback failed");
+        }
+    }
+
     // ----- file / patch operations -----------------------------------------
 
     [RelayCommand]
@@ -205,24 +238,27 @@ public sealed partial class MainWindowViewModel : ObservableObject
             return;
         }
 
-        await RunBusyAsync("StatusPatching", async () =>
-        {
-            PatchTimings.Reset();
-            try
+        await RunBusyAsync(
+            "StatusPatching",
+            async cancellationToken =>
             {
-                await PatchAndSaveCoreAsync();
-            }
-            finally
-            {
-                // Written even when the patch failed: a failed run still shows where the time went.
-                WritePatchTimings();
-            }
-        });
+                PatchTimings.Reset();
+                try
+                {
+                    await PatchAndSaveCoreAsync(cancellationToken);
+                }
+                finally
+                {
+                    // Written even when the patch failed: a failed run still shows where the time went.
+                    WritePatchTimings();
+                }
+            },
+            cancellable: true);
     }
 
-    private async Task PatchAndSaveCoreAsync()
+    private async Task PatchAndSaveCoreAsync(CancellationToken cancellationToken)
     {
-        await ReloadPatchedDataAsync();
+        await ReloadPatchedDataAsync(cancellationToken);
 
         Log.Information("Patching {Count} enabled mod(s)", _services.Catalog.Mods.Count(m => m.Enabled));
 
@@ -230,7 +266,17 @@ public sealed partial class MainWindowViewModel : ObservableObject
         try
         {
             // Keep the UI thread free so the log panel streams the patch progress.
-            diagnostic = await Task.Run(() => _services.Patcher.Patch(_services.Catalog.Mods));
+            diagnostic = await Task.Run(
+                () => _services.Patcher.Patch(_services.Catalog.Mods, cancellationToken),
+                cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            // The pipeline stops between mods: the loaded data is partially patched and unusable.
+            _dataNeedsReload = true;
+            Log.Warning("Patching cancelled; the loaded data is partially patched and will be reloaded");
+            SetStatus("StatusCancelled");
+            return;
         }
         catch (Exception ex)
         {
@@ -271,7 +317,17 @@ public sealed partial class MainWindowViewModel : ObservableObject
                 else
                 {
                     Log.Information("Saving patched data to {Path}", destination);
-                    await _services.GameData.SaveAsync(destination);
+                    try
+                    {
+                        await _services.GameData.SaveAsync(destination, cancellationToken);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        Log.Warning("Saving cancelled; {Path} was not written", destination);
+                        SetStatus("StatusCancelled");
+                        return;
+                    }
+
                     string? directory = Path.GetDirectoryName(destination);
                     if (directory is not null)
                     {
@@ -333,7 +389,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     /// Reloads the vanilla file when the previous patch run left the in-memory data dirty. Unlike
     /// the old unconditional reload it only costs time when another patch is actually requested.
     /// </summary>
-    private async Task ReloadPatchedDataAsync()
+    private async Task ReloadPatchedDataAsync(CancellationToken cancellationToken)
     {
         if (!_dataNeedsReload || string.IsNullOrEmpty(_services.GameData.DataPath))
         {
@@ -341,7 +397,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         }
 
         Log.Information("Reloading {Path} before patching", _services.GameData.DataPath);
-        await _services.GameData.LoadAsync(_services.GameData.DataPath);
+        await _services.GameData.LoadAsync(_services.GameData.DataPath, cancellationToken);
         _dataNeedsReload = false;
     }
 
@@ -497,21 +553,35 @@ public sealed partial class MainWindowViewModel : ObservableObject
         _catalogLoaded = true;
     }
 
-    private async Task RunBusyAsync(string busyKey, Func<Task> action)
+    private Task RunBusyAsync(string busyKey, Func<Task> action) =>
+        RunBusyAsync(busyKey, _ => action(), cancellable: false);
+
+    private async Task RunBusyAsync(string busyKey, Func<CancellationToken, Task> action, bool cancellable)
     {
         if (IsBusy)
         {
             return;
         }
 
+        using CancellationTokenSource cancellation = new();
+        _busyCancellation = cancellation;
+
         IsBusy = true;
+        CanCancelBusy = cancellable;
         _busyKey = busyKey;
         BusyText = LocalizationService.Instance[busyKey];
 
         Exception? failure = null;
         try
         {
-            await action();
+            await action(cancellation.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            // Cancelling is a user decision, not a failure: no error dialog, and the data is
+            // already marked for a reload by the operation that was interrupted.
+            Log.Warning("The running operation was cancelled");
+            SetStatus("StatusCancelled");
         }
         catch (Exception ex)
         {
@@ -524,6 +594,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
             // Always leave the busy state before any dialog is shown, so a failed operation can
             // never leave the progress overlay covering the window.
             IsBusy = false;
+            CanCancelBusy = false;
+            _busyCancellation = null;
             BusyText = string.Empty;
             _busyKey = string.Empty;
         }

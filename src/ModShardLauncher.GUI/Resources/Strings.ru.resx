@@ -57,6 +57,8 @@ UndertaleModTool {1}
   <data name="ModsCount" xml:space="preserve"><value>{0} модов</value></data>
   <data name="StatusReady" xml:space="preserve"><value>Готово</value></data>
   <data name="StatusFailed" xml:space="preserve"><value>Ошибка</value></data>
+  <data name="StatusCancelled" xml:space="preserve"><value>Отменено</value></data>
+  <data name="StatusCancelling" xml:space="preserve"><value>Отмена…</value></data>
   <data name="SettingsLanguage" xml:space="preserve"><value>Язык</value></data>
   <data name="DialogErrorTitle" xml:space="preserve"><value>Ошибка</value></data>
   <data name="SettingsOpen" xml:space="preserve"><value>Открыть</value></data>

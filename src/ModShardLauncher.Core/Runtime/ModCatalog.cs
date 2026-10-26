@@ -16,6 +16,15 @@ public sealed class ModCatalog
     private readonly List<ModSource> _modSources = new();
     private readonly List<string> _loadErrors = new();
 
+    /// <summary>
+    /// Loaded packages by file path. Assemblies are loaded into a <b>non collectible</b>
+    /// <see cref="ModAssemblyLoadContext"/>, so reloading an unchanged package would leak one
+    /// assembly per patch run. Reusing the package keeps one assembly per <c>.sml</c>; a fresh
+    /// <see cref="Mod"/> instance is still created for every reload, so mod state does not leak
+    /// between runs.
+    /// </summary>
+    private readonly Dictionary<string, CachedPackage> _packages = new(StringComparer.Ordinal);
+
     public ModCatalog(string? modsDirectory = null, string? sourcesDirectory = null)
     {
         _modsDirectory = modsDirectory ?? AppPaths.ModsDirectory;
@@ -61,7 +70,20 @@ public sealed class ModCatalog
             string fileName = Path.GetFileName(file);
             try
             {
-                ModFile? modFile = SmlPackageReader.Read(file);
+                if (TryReusePackage(file, fileName, out ModFile? reused))
+                {
+                    loaded.Add(reused!);
+                    continue;
+                }
+
+                _packages.Remove(file);
+
+                // One context per package build: a rebuilt .sml keeps its assembly identity, and the
+                // runtime rejects loading that identity twice into the same context.
+                ModAssemblyLoadContext loadContext =
+                    ModAssemblyLoadContext.CreateForPackage($"{fileName}#{Guid.NewGuid():N}");
+
+                ModFile? modFile = SmlPackageReader.Read(file, loadContext);
                 if (modFile?.Assembly is null)
                 {
                     continue;
@@ -91,6 +113,8 @@ public sealed class ModCatalog
                     modFile.Enabled = previous.Enabled;
                 }
 
+                FileInfo info = new(file);
+                _packages[file] = new CachedPackage(modFile, info.Length, info.LastWriteTimeUtc);
                 loaded.Add(modFile);
             }
             catch (ReflectionTypeLoadException ex)
@@ -103,10 +127,72 @@ public sealed class ModCatalog
             }
         }
 
+        PrunePackages();
+
         _mods.Clear();
         _mods.AddRange(loaded);
         Changed?.Invoke(this, EventArgs.Empty);
     }
+
+    /// <summary>
+    /// Reuses the assembly of an unchanged <c>.sml</c> (same size and last write time) with a fresh
+    /// <see cref="Mod"/> instance. Anything unexpected makes this return false so the package is
+    /// loaded from scratch, exactly like before.
+    /// </summary>
+    private bool TryReusePackage(string path, string fileName, out ModFile? modFile)
+    {
+        modFile = null;
+        if (!_packages.TryGetValue(path, out CachedPackage? cached) || cached.File.Assembly is null)
+        {
+            return false;
+        }
+
+        FileInfo info = new(path);
+        if (info.Length != cached.Length || info.LastWriteTimeUtc != cached.LastWriteTimeUtc)
+        {
+            return false;
+        }
+
+        Type? modType = FindModType(cached.File.Assembly, fileName);
+        if (modType is null || Activator.CreateInstance(modType) is not Mod instance)
+        {
+            return false;
+        }
+
+        cached.File.Stream?.Close();
+        cached.File.Stream = null;
+
+        instance.LoadAssembly();
+        instance.ModFiles = cached.File;
+        cached.File.instance = instance;
+        cached.File.ReloadRequested = Reload;
+
+        // The status belongs to the run, not to the package: a reload starts from "not patched".
+        cached.File.PatchStatus = PatchStatus.None;
+
+        Log.Debug("Reusing the loaded assembly of {File}", fileName);
+        modFile = cached.File;
+        return true;
+    }
+
+    /// <summary>Drops cached packages whose <c>.sml</c> disappeared from the mods folder.</summary>
+    private void PrunePackages()
+    {
+        if (_packages.Count == 0)
+        {
+            return;
+        }
+
+        HashSet<string> present = new(
+            Directory.GetFiles(_modsDirectory, "*.sml").Select(Path.GetFullPath),
+            StringComparer.OrdinalIgnoreCase);
+        foreach (string path in _packages.Keys.Where(path => !present.Contains(Path.GetFullPath(path))).ToArray())
+        {
+            _packages.Remove(path);
+        }
+    }
+
+    private sealed record CachedPackage(ModFile File, long Length, DateTime LastWriteTimeUtc);
 
     /// <summary>
     /// Snapshot of the currently enabled mod names for <c>Settings.json</c>. De-duplicated so a

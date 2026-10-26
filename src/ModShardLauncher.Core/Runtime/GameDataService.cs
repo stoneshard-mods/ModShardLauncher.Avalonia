@@ -45,7 +45,7 @@ public sealed class GameDataService
         {
             using (PatchTimings.Measure("load"))
             {
-                await Task.Run(() => LoadCore(path), cancellationToken).ConfigureAwait(false);
+                await Task.Run(() => LoadCore(path, cancellationToken), cancellationToken).ConfigureAwait(false);
             }
         }
         catch
@@ -55,12 +55,15 @@ public sealed class GameDataService
         }
     }
 
-    /// <summary>Writes the patched data to <paramref name="path"/> using a temp file and an atomic replace.</summary>
+    /// <summary>
+    /// Writes the patched data to <paramref name="path"/> using a temp file and an atomic replace.
+    /// A cancellation that arrives before the swap discards the temp file and leaves the target alone.
+    /// </summary>
     public async Task SaveAsync(string path, CancellationToken cancellationToken = default)
     {
         using (PatchTimings.Measure("save"))
         {
-            await Task.Run(() => SaveCore(path), cancellationToken).ConfigureAwait(false);
+            await Task.Run(() => SaveCore(path, cancellationToken), cancellationToken).ConfigureAwait(false);
             SavedDataPath = path;
         }
     }
@@ -68,8 +71,10 @@ public sealed class GameDataService
     /// <summary>Dumps the loaded data for code exploration (same output as the WPF build).</summary>
     public void Export(DataType type) => MslContext.Data.Export(type);
 
-    private void LoadCore(string path)
+    private void LoadCore(string path, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         using FileStream stream = new(path, FileMode.Open, FileAccess.Read);
 
         // One checksum per load: it validates the file and identifies it for the optional caches.
@@ -103,15 +108,22 @@ public sealed class GameDataService
             data.Export(DataType.Items);
             Log.Information("Wrote item/weapon/armor manifests to the export folder");
         }
+
+        // A cancellation that arrived during the (uninterruptible) parse must discard the data
+        // instead of leaving a half-initialised file attached.
+        cancellationToken.ThrowIfCancellationRequested();
     }
 
-    private void SaveCore(string path)
+    private void SaveCore(string path, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         // Unique temp file next to the target: a crashed or concurrent run can never clobber the
         // temp file of another save, and the target is only touched by the final swap.
         string tempPath = $"{path}.{Guid.NewGuid():N}.tmp";
         List<Exception> exceptions = new();
         bool succeeded = false;
+        bool cancelled = false;
 
         try
         {
@@ -129,6 +141,13 @@ public sealed class GameDataService
             {
                 exceptions.Add(cleanupException);
             }
+        }
+
+        // Cancelling during the write must never replace the target: the temp file is thrown away.
+        if (succeeded && cancellationToken.IsCancellationRequested)
+        {
+            succeeded = false;
+            cancelled = true;
         }
 
         if (succeeded)
@@ -165,6 +184,11 @@ public sealed class GameDataService
             {
                 exceptions.Add(cleanupException);
             }
+        }
+
+        if (cancelled)
+        {
+            throw new OperationCanceledException(cancellationToken);
         }
 
         if (!succeeded)

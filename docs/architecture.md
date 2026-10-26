@@ -162,6 +162,7 @@ ModSourcesView → ModSourceItemViewModel.CompileCommand
 |---|---|
 | 程序集身份 | Core 的 `AssemblyVersion` 固定为 `1.0.0.0`（旧 WPF 版只设置 `FileVersion`，程序集版本默认就是 1.0.0.0） |
 | 依赖解析 | `ModAssemblyLoadContext.LoadMod(byte[])`：任何 `ModShardLauncher` 请求都绑定到已加载的宿主程序集；其余依赖从默认上下文或应用目录解析 |
+| 加载上下文隔离 | 每个 `.sml` 的**每次构建**使用一个独立上下文（`CreateForPackage`）：同一个包重新编译后程序集标识不变，而运行时拒绝把同一标识二次装入同一上下文（`FileLoadException: Assembly with same name is already loaded`）。未变化的包直接复用已加载的程序集，每次刷新仍创建新的 `Mod` 实例 |
 | 静态字段 | `DataLoader.data`、`ModLoader.Weapons/WeaponDescriptions/ScriptCallbacks` 保持为 `public static` **字段**（改成属性会破坏已编译的 `ldsfld`），并与 `MslContext` 共享同一实例 |
 | 静态方法 | `ModLoader.GetTable/SetTable/Initalize/AddMenu`、`DataLoader.Reset/LogUTMT*` 转发到新实现；仅宿主可执行的入口（`LoadFile`/`SaveFile`）抛出明确异常 |
 | WPF 依赖 | 移除对 `UndertaleModTool.LayerZIndexConverter` 的调用（它实现 `IMultiValueConverter`，类型加载需要 `PresentationFramework`）；改用 `UndertaleModLib` 的 `UpdateZIndex` |
@@ -228,5 +229,5 @@ ModSourcesView → ModSourceItemViewModel.CompileCommand
 
 1. 为图集布局、补丁管线补集成测试（`.sml` 读取与本地化已有回归测试）。
 2. 视需要把 `MslTextures`/`MslRooms`/`LootTables` 等大文件继续按类型拆分。
-3. 评估用 `AssemblyLoadContext` 隔离并卸载模组程序集。
+3. 评估让模组程序集的加载上下文可回收（`isCollectible` + `Unload`）：目前每个包每次构建的上下文只能随进程退出释放，重新编译很多次会累积。
 4. 增加 Windows 之外的构建矩阵（CLI 模式与测试可在 Linux 运行）。

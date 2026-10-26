@@ -5,7 +5,7 @@ namespace ModShardLauncher.CLI;
 
 internal static class CliCommands
 {
-    public static async Task<int> PatchAsync(CliArguments arguments)
+    public static async Task<int> PatchAsync(CliArguments arguments, CancellationToken cancellationToken = default)
     {
         string dataPath = arguments.Require("data");
         string outputPath = arguments.Require("output");
@@ -13,60 +13,72 @@ internal static class CliCommands
         PatchTimings.Reset();
 
         GameDataService gameData = new();
-        await gameData.LoadAsync(dataPath);
 
-        ModCatalog catalog = new(arguments.Get("mods"));
-        catalog.Reload();
-
-        if (arguments.Has("all"))
+        try
         {
-            foreach (ModFile mod in catalog.Mods)
+            await gameData.LoadAsync(dataPath, cancellationToken);
+
+            ModCatalog catalog = new(arguments.Get("mods"));
+            catalog.Reload();
+
+            if (arguments.Has("all"))
             {
-                mod.Enabled = true;
+                foreach (ModFile mod in catalog.Mods)
+                {
+                    mod.Enabled = true;
+                }
             }
+            else if (arguments.Get("enable") is { } enabled)
+            {
+                catalog.ApplyEnabledMods(enabled.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+            }
+
+            int enabledCount = catalog.Mods.Count(m => m.Enabled);
+            if (enabledCount == 0)
+            {
+                Console.Error.WriteLine("No mod is enabled; pass --all or --enable <names>.");
+                return 1;
+            }
+
+            PatchRunner runner = new();
+            PatchDiagnostic? diagnostic = runner.Patch(catalog.Mods, cancellationToken);
+            if (diagnostic is not null)
+            {
+                Console.Error.WriteLine(diagnostic.Title);
+                Console.Error.WriteLine(diagnostic.Summary);
+                Console.Error.WriteLine(diagnostic.Details);
+                return 2;
+            }
+
+            await gameData.SaveAsync(outputPath, cancellationToken);
+            string? directory = Path.GetDirectoryName(Path.GetFullPath(outputPath));
+            if (directory is not null)
+            {
+                LootTableRegistry.SaveLootTables(directory);
+            }
+
+            Log.Information("Patched {Count} mod(s) into {Output}", enabledCount, outputPath);
+            Console.WriteLine($"Patched {enabledCount} mod(s) into {outputPath}");
+
+            Log.Debug("{Timings}", PatchTimings.ToSummary());
+            if (arguments.Get("timings") is { } timingsPath)
+            {
+                string fullPath = Path.GetFullPath(timingsPath);
+                File.WriteAllText(fullPath, PatchTimings.ToJson());
+                Console.WriteLine(PatchTimings.ToSummary());
+                Console.WriteLine($"Timings written to {fullPath}");
+            }
+
+            return 0;
         }
-        else if (arguments.Get("enable") is { } enabled)
+        catch (OperationCanceledException)
         {
-            catalog.ApplyEnabledMods(enabled.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+            // Cancelling never leaves a half-written output: the save stage discards its temp file
+            // and the target is only touched by the final atomic swap.
+            Log.Warning("Cancelled; no output file was written");
+            Console.Error.WriteLine("Cancelled.");
+            return 130;
         }
-
-        int enabledCount = catalog.Mods.Count(m => m.Enabled);
-        if (enabledCount == 0)
-        {
-            Console.Error.WriteLine("No mod is enabled; pass --all or --enable <names>.");
-            return 1;
-        }
-
-        PatchRunner runner = new();
-        PatchDiagnostic? diagnostic = runner.Patch(catalog.Mods);
-        if (diagnostic is not null)
-        {
-            Console.Error.WriteLine(diagnostic.Title);
-            Console.Error.WriteLine(diagnostic.Summary);
-            Console.Error.WriteLine(diagnostic.Details);
-            return 2;
-        }
-
-        await gameData.SaveAsync(outputPath);
-        string? directory = Path.GetDirectoryName(Path.GetFullPath(outputPath));
-        if (directory is not null)
-        {
-            LootTableRegistry.SaveLootTables(directory);
-        }
-
-        Log.Information("Patched {Count} mod(s) into {Output}", enabledCount, outputPath);
-        Console.WriteLine($"Patched {enabledCount} mod(s) into {outputPath}");
-
-        Log.Debug("{Timings}", PatchTimings.ToSummary());
-        if (arguments.Get("timings") is { } timingsPath)
-        {
-            string fullPath = Path.GetFullPath(timingsPath);
-            File.WriteAllText(fullPath, PatchTimings.ToJson());
-            Console.WriteLine(PatchTimings.ToSummary());
-            Console.WriteLine($"Timings written to {fullPath}");
-        }
-
-        return 0;
     }
 
     public static int List(CliArguments arguments)

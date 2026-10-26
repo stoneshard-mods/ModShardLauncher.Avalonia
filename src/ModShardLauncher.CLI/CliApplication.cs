@@ -54,11 +54,22 @@ internal static class CliApplication
             Log.Information("Migrated {Item} from the portable layout", item);
         }
 
+        // Ctrl+C asks the pipeline to stop instead of killing it: the pipeline only breaks between
+        // mods, and the save stage discards its temp file, so no partial output is left behind.
+        using CancellationTokenSource cancellation = new();
+        ConsoleCancelEventHandler onCancel = (_, args) =>
+        {
+            args.Cancel = true;
+            Log.Warning("Cancellation requested; stopping at the next safe point");
+            cancellation.Cancel();
+        };
+        Console.CancelKeyPress += onCancel;
+
         try
         {
             return arguments.Command switch
             {
-                "patch" => await CliCommands.PatchAsync(arguments),
+                "patch" => await CliCommands.PatchAsync(arguments, cancellation.Token),
                 "list" => CliCommands.List(arguments),
                 "compile" => await CliCommands.CompileAsync(arguments),
                 "export" => await CliCommands.ExportAsync(arguments),
@@ -73,6 +84,7 @@ internal static class CliApplication
         }
         finally
         {
+            Console.CancelKeyPress -= onCancel;
             await Log.CloseAndFlushAsync();
         }
     }
