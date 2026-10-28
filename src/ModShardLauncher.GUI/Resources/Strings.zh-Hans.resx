@@ -11,7 +11,8 @@
   <data name="AboutText" xml:space="preserve"><value>ModShardLauncher {0}
 UndertaleModTool {1}
 
-《石质碎片》社区模组工具。
+Stoneshard 社区模组工具。
+作者：Pixel32E
 与 Ink Stains Games 无关。</value></data>
   <data name="ModsReload" xml:space="preserve"><value>重新加载</value></data>
   <data name="HomeStatsData" xml:space="preserve"><value>游戏数据</value></data>
