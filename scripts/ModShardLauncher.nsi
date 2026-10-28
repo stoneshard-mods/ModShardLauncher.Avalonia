@@ -40,8 +40,10 @@ ${UnStrRep}
 
 ; ----- product metadata ---------------------------------------------------
 !define PRODUCT_NAME "ModShardLauncher"
-!define PRODUCT_PUBLISHER "ModShardTeam"
+!define PRODUCT_PUBLISHER "Pixel32E"
 !define PRODUCT_WEB_SITE "https://github.com/ModShardTeam/ModShardLauncher"
+!define PRODUCT_COPYRIGHT "Copyright (C) 2026 Pixel32E. Based on ModShardTeam/ModShardLauncher (GPL-3.0)."
+!define PRODUCT_COMMENTS "Based on ModShardTeam/ModShardLauncher"
 !define APP_KEY "Software\ModShardTeam\ModShardLauncher"
 !define UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
 !define APP_EXE "ModShardLauncher.GUI.exe"
@@ -75,8 +77,8 @@ VIAddVersionKey "CompanyName" "${PRODUCT_PUBLISHER}"
 VIAddVersionKey "FileDescription" "${PRODUCT_NAME} Setup"
 VIAddVersionKey "FileVersion" "${APP_VERSION}"
 VIAddVersionKey "ProductVersion" "${APP_VERSION}"
-VIAddVersionKey "LegalCopyright" "GPL-3.0"
-VIAddVersionKey "Comments" "Stoneshard mod manager and modding toolkit"
+VIAddVersionKey "LegalCopyright" "${PRODUCT_COPYRIGHT}"
+VIAddVersionKey "Comments" "${PRODUCT_COMMENTS}"
 
 ; ----- UI -----------------------------------------------------------------
 !define MUI_ABORTWARNING

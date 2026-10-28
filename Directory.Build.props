@@ -8,9 +8,10 @@
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <Version>0.13.2</Version>
     <FileVersion>0.13.2.0</FileVersion>
-    <Company>ModShardTeam</Company>
+    <Company>Pixel32E</Company>
     <Product>ModShardLauncher</Product>
-    <Authors>ModShardTeam</Authors>
+    <Authors>Pixel32E</Authors>
+    <Copyright>Copyright (C) 2026 Pixel32E. Based on ModShardTeam/ModShardLauncher (GPL-3.0).</Copyright>
   </PropertyGroup>
 
 </Project>

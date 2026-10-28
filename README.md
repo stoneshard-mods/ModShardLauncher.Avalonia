@@ -10,6 +10,7 @@
 
 - 本项目地址：<https://github.com/stoneshard-mods/ModShardLauncher.Avalonia>
 - 原项目地址：<https://github.com/ModShardTeam/ModShardLauncher>
+- 原项目以 GPL-3.0 发布，版权归 ModShardTeam 及其贡献者；本项目同样以 GPL-3.0 发布，版权与改动摘要见 [NOTICE](NOTICE)。
 - 本仓库是可运行的迁移实现，不是原项目的官方分支；遇到界面/构建问题请反馈到本仓库。
 
 ## 功能
@@ -230,15 +231,14 @@ ModShardLauncher.CLI.exe export  --data <vanilla.win> --type items|codes|presets
 安装时启用了「命令行集成」的话，上面的命令都可以省略路径，直接用 `msl`：
 
 ```powershell
-msl patch --data D:\Games\Stoneshard\data.win --output .\modded.win --all
+msl patch --data "C:\Program Files (x86)\Steam\steamapps\common\Stoneshard\original.win" --output .\modded.win --all
 ```
 
 示例：
 
 ```powershell
 # 打补丁：启用全部模组
-ModShardLauncher.CLI.exe patch --data D:\Games\Stoneshard\data.win `
-  --output .\modded.win --all
+ModShardLauncher.CLI.exe patch --data "C:\Program Files (x86)\Steam\steamapps\common\Stoneshard\original.win" --output .\modded.win --all
 
 # 只启用指定模组
 ModShardLauncher.CLI.exe patch --data .\data.win --output .\out.win --enable Quicksave,SpeedManager
@@ -286,6 +286,12 @@ ModShardLauncher.CLI.exe launch --fullscreen
 
 重新编译 `ModSource` 后点“刷新/编译”会让模组从列表里消失（`FileLoadException: Assembly with same name is already loaded`）的问题已修复：每个 `.sml` 的每次构建使用独立的加载上下文，未变化的包则复用已加载的程序集（每次刷新仍会创建新的 `Mod` 实例）。
 
-## 许可证
+## 许可证与来源
 
-GPL-3.0，见 [LICENSE](LICENSE)。本项目是社区项目，与 Ink Stains Games 无关。
+本项目以 **GPL-3.0** 发布，完整文本见 [LICENSE](LICENSE)。
+
+- 原作品：[ModShardTeam/ModShardLauncher](https://github.com/ModShardTeam/ModShardLauncher)（GPL-3.0），版权归 ModShardTeam 及其贡献者所有。
+- 本项目：由 Pixel32E 维护的 Avalonia 重构版，Copyright (C) 2026 Pixel32E，同样以 GPL-3.0 发布。
+- 相对原项目的改动摘要（移除脚本控制台、拆分项目、界面替换等）见 [NOTICE](NOTICE)。
+
+本项目是社区项目，与 Ink Stains Games 无关。

@@ -1,0 +1,38 @@
+ModShardLauncher (Avalonia refactor)
+====================================
+
+This project is a refactor of the original ModShardLauncher for Stoneshard.
+
+Original work
+-------------
+    Project : ModShardTeam/ModShardLauncher
+    Source  : https://github.com/ModShardTeam/ModShardLauncher
+    Holder  : ModShardTeam and contributors
+    License : GNU General Public License, version 3
+
+This work
+---------
+    Project : stoneshard-mods/ModShardLauncher.Avalonia
+    Source  : https://github.com/stoneshard-mods/ModShardLauncher.Avalonia
+    Holder  : Copyright (C) 2026 Pixel32E
+    License : GNU General Public License, version 3
+
+Modifications relative to the original project
+----------------------------------------------
+- The WPF desktop client was replaced by an Avalonia UI (src/ModShardLauncher.GUI).
+- The code base was split into three projects: shared domain logic in a UI-free library
+  (src/ModShardLauncher.Core), the desktop client and a headless CLI
+  (src/ModShardLauncher.CLI). Mods, mod sources, logs and settings moved to the
+  per-user data folder (%LOCALAPPDATA%\ModShardLauncher).
+- The script console, its network listener and the associated GML injection were removed.
+  The public members that already published .sml packages bind to are kept as obsolete
+  placeholders so old mods keep loading (see README, "兼容占位").
+- Behavioural fixes and additions: cancelable patch pipeline, refusal to patch an
+  already-patched file, per-data-file decompiler cache, log folder retention, patch
+  timings, and .resx based localization (English, Simplified Chinese, Russian).
+- The modding API namespace, type names, method signatures, the .sml package format and
+  the Core assembly identity (ModShardLauncher, AssemblyVersion 1.0.0.0) are unchanged.
+
+Both the original project and this project are distributed under the GNU General Public
+License version 3; see LICENSE for the full text. This project is a community effort and
+is not affiliated with Ink Stains Games.
