@@ -91,6 +91,9 @@ public static class MslContext
     /// <summary>Decompiles <paramref name="code"/> once and returns the same text for every later read.</summary>
     internal static string DecompileText(UndertaleCode code)
     {
+        // A reader must never observe a table script whose queued rows were not compiled yet.
+        TableDraftStore.FlushForCode(code);
+
         if (DecompiledText.TryGetValue(code, out string? cached))
         {
             PatchTimings.Record("decompile-cached", 0);
@@ -179,6 +182,7 @@ public static class MslContext
         ModLoader.Weapons = new List<string>();
         ModLoader.WeaponDescriptions = new List<string>();
         LootTableRegistry.ResetLootTables();
+        TableDraftStore.Reset();
         UndertaleIO.IsDictionaryCleared = false;
         _decompilerCache = null;
         DecompiledText.Clear();
@@ -205,5 +209,11 @@ public static class MslContext
         Credits = new List<(string, string[])>();
         Disclaimers = new List<(string, UndertaleRoom.GameObject)>();
         LootTableRegistry.ResetLootTables();
+
+        // Table rows queued before the pipeline started (or by a failed earlier run) belong to the
+        // data file that is still loaded: apply them, then start the new run with fresh drafts so
+        // every table is re-read from the code it was just written to.
+        TableDraftStore.FlushAll();
+        TableDraftStore.Reset();
     }
 }

@@ -1,8 +1,5 @@
-using System.Text.RegularExpressions;
-using Newtonsoft.Json;
 using Serilog;
 using UndertaleModLib;
-using UndertaleModLib.Decompiler;
 using UndertaleModLib.Models;
 
 namespace ModShardLauncher;
@@ -26,12 +23,22 @@ public static class GameTableCodec
     {
         try
         {
+            // A table that was already read or written in this run is served from its draft, so a
+            // batched write is visible to the next reader instead of the not-yet-compiled script.
+            if (TableDraftStore.TryGetRows(name, out List<string> tracked))
+            {
+                return tracked;
+            }
+
             UndertaleCode table = MslContext.Data.Code.First(t => t.Name.Content == name);
-            return table.Instructions
+            List<string> rows = table.Instructions
                 .Where(AssemblyWrapper.IsPushString)
                 .Select(i => (i.Value as UndertaleResourceById<UndertaleString, UndertaleChunkSTRG>)!.Resource.Content)
                 .Reverse()
                 .ToList();
+
+            TableDraftStore.Track(name, table, rows);
+            return new List<string>(rows);
         }
         catch (Exception ex)
         {
@@ -41,24 +48,19 @@ public static class GameTableCodec
     }
 
     /// <summary>
-    /// Replaces the table stored in the script <paramref name="name"/>. The legacy snapshot lists
-    /// (<see cref="ModLoader.Weapons"/> / <see cref="ModLoader.WeaponDescriptions"/>) are pointed at
-    /// the list that was just written, so <see cref="Msl.SetWeapon"/> and friends never observe a
-    /// stale copy of the table.
+    /// Queues <paramref name="table"/> as the new content of the script <paramref name="name"/>.
+    /// The script is recompiled once per patch batch instead of once per call (see
+    /// <see cref="TableDraftStore"/>); reads of the script flush first, so the table is never
+    /// observable in a stale state through the public API.
+    /// The legacy snapshot lists (<see cref="ModLoader.Weapons"/> / <see cref="ModLoader.WeaponDescriptions"/>)
+    /// are pointed at the list that was just queued, so <see cref="Msl.SetWeapon"/> and friends never
+    /// observe a stale copy of the table.
     /// </summary>
     public static void SetTable(List<string> table, string name)
     {
-        using PatchTimings.Scope timing = PatchTimings.Measure($"table:{name}");
-
-        string serialized = JsonConvert.SerializeObject(table).Replace("\n", "");
-        UndertaleCode target = MslContext.Data.Code.First(t => t.Name.Content == name);
-        string text = MslContext.DecompileText(target);
-        text = Regex.Replace(text, "\\[.*\\]", serialized);
-        target.ReplaceGML(text, MslContext.Data);
-        MslContext.InvalidateDecompiledText(target);
-
+        TableDraftStore.Set(name, table);
         SyncSnapshot(table, name);
-        Log.Information("Successfully set table: {0}", name);
+        Log.Debug("Queued table write for {0}", name);
     }
 
     /// <summary>Keeps the public table snapshots in step with what was written to the data file.</summary>

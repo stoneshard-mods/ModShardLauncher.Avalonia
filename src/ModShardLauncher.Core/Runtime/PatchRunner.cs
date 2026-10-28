@@ -119,6 +119,12 @@ public sealed class PatchRunner
             {
                 InjectDeclaredWeapons(mod.instance);
             }
+
+            // Compile the tables this mod queued (see TableDraftStore): one compile per table and
+            // per mod, instead of one per row/API call. A failing mod therefore still leaves its
+            // table rows unapplied, which is fine because the whole run fails and the host reloads.
+            TableDraftStore.FlushAll();
+
             mod.PatchStatus = PatchStatus.Success;
             Log.Information("Mod {Name} patched", mod.Name);
             LogModStatus(mod);
@@ -130,6 +136,9 @@ public sealed class PatchRunner
             MslContext.Credits.SelectMany(x => x.Item2).Distinct().ToArray());
         Msl.ChainDisclaimerRooms(MslContext.Disclaimers);
         Msl.CreateMenu(MslContext.Menus);
+
+        // Safety net: nothing is allowed to stay queued when the mod loop is done.
+        TableDraftStore.FlushAll();
     }
 
     /// <summary>

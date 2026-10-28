@@ -87,6 +87,10 @@ namespace ModShardLauncher
         public static UndertaleCode GetUMTCodeFromFile(string fileName)
         {
             UndertaleCode code = MslContext.Data.Code.First(t => t.Name?.Content == fileName);
+
+            // A queued table write has to reach the script before its code entry is handed out, so
+            // disassembly/compilation of that entry sees the rows the API already reports.
+            TableDraftStore.FlushForCode(code);
             Log.Information("Found function: {0}", code);
 
             return code;

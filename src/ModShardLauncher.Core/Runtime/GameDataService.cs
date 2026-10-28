@@ -75,7 +75,12 @@ public sealed class GameDataService
     }
 
     /// <summary>Dumps the loaded data for code exploration (same output as the WPF build).</summary>
-    public void Export(DataType type) => MslContext.Data.Export(type);
+    public void Export(DataType type)
+    {
+        // The export reads the code entries directly, so pending table writes must be applied first.
+        TableDraftStore.FlushAll();
+        MslContext.Data.Export(type);
+    }
 
     private void LoadCore(string path, CancellationToken cancellationToken)
     {
@@ -205,6 +210,10 @@ public sealed class GameDataService
 
     private void SaveTo(string path)
     {
+        // Defensive: a caller that patches through the API and saves without going through
+        // PatchRunner must not lose a queued table write (see TableDraftStore).
+        TableDraftStore.FlushAll();
+
         // The library patches its pointers by seeking backwards while it writes. A FileStream
         // discards its buffer on every seek, which turns the tail of the save into tens of thousands
         // of scattered small writes: measured 9.1 s straight to disk versus 3.4 s into memory plus

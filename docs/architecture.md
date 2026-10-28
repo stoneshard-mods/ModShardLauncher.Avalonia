@@ -79,6 +79,7 @@ src/ModShardLauncher.Core/
 | `ModCatalog` | 扫描 `Mods/*.sml`、`ModSources/*.csproj`，实例化 `Mod` | 保留 `Enabled` 状态；单个包解析失败只记录 |
 | `PatchRunner` | 依次执行日志注入 → 各模组 `PatchMod()`（含 `ModWeapons` 写入）→ 掉落脚本注入 | 保持原顺序；异常转换为 `PatchDiagnostic` |
 | `TextureInjector` | PNG → 图集 → EmbeddedTexture/PageItem/Sprite/碰撞掩码 | 使用 SkiaSharp，算法与 GDI+ 版逐位对齐 |
+| `GameTableCodec` + `TableDraftStore` | 读写 `gml_GlobalScript_table_*`；写操作按批合并后统一编译 | 每个模组结束时、管线结束/保存前、以及读到该脚本前各 flush 一次；`table:<name>` 计时保留在 flush 处 |
 | `ModCompiler` | 调用 `ModShardPackerReference` 编译 `.sml` | 依赖 `ModShardLauncher.dll` 的磁盘路径 |
 | `MslContext` | 静态 API 的当前数据、菜单/署名/回调等补丁期状态 | 由宿主在补丁前后 Attach/Detach |
 | `SettingsStore` | `Settings.json` 读写 | 字段名与旧版一致；文件位于用户数据目录 |
@@ -109,7 +110,9 @@ PatchAndSaveCommand
   → PatchRunner.Patch(mods)
       → GameLogInjection.InjectLog()
       → foreach enabled mod: TextureInjector.Inject → mod.PatchMod() → ModWeapons 写入（Msl.AddWeapon）
+                                → TableDraftStore.FlushAll()（本模组排队的表写回只编译一次）
       → AddDisclaimerRoom / ChainDisclaimerRooms / CreateMenu
+      → TableDraftStore.FlushAll()（管线兜底）
       → LootTableRegistry.InjectLootScripts()
   → 成功：StorageProvider 选择保存路径 → GameDataService.SaveAsync
                   → LootTableRegistry.SaveLootTables(目录)
