@@ -22,6 +22,7 @@ internal static class StringPool
 {
     private static readonly object Gate = new();
     private static Dictionary<string, int>? _index;
+    private static Dictionary<string, int>? _lastIndex;
     private static int _indexedCount;
 
     /// <summary>Returns the pool entry for <paramref name="content"/>, appending one when missing.</summary>
@@ -47,6 +48,42 @@ internal static class StringPool
             MslContext.Data.Strings.Add(created);
             index = MslContext.Data.Strings.Count - 1;
             _index[content] = index;
+            _lastIndex![content] = index;
+            _indexedCount = MslContext.Data.Strings.Count;
+            return created;
+        }
+    }
+
+    /// <summary>
+    /// Returns the <b>last</b> pool entry with <paramref name="content"/> (appending one when missing).
+    /// <para>
+    /// That is how the GML compiler binds string literals: it prepares a content→entry map for the
+    /// compile and a later duplicate overwrites the earlier one. Only needed where the exact
+    /// instruction stream of a script has to match what a compile would produce (the table writer);
+    /// everything else uses <see cref="Intern(string)"/>, which keeps the first entry, like
+    /// <c>MakeString</c>.
+    /// </para>
+    /// </summary>
+    internal static UndertaleString InternLast(string content, out int index)
+    {
+        if (content is null)
+        {
+            throw new ArgumentNullException(nameof(content));
+        }
+
+        lock (Gate)
+        {
+            SyncCore();
+            if (_lastIndex!.TryGetValue(content, out index))
+            {
+                return MslContext.Data.Strings[index];
+            }
+
+            UndertaleString created = new(content);
+            MslContext.Data.Strings.Add(created);
+            index = MslContext.Data.Strings.Count - 1;
+            _index!.TryAdd(content, index);
+            _lastIndex[content] = index;
             _indexedCount = MslContext.Data.Strings.Count;
             return created;
         }
@@ -73,6 +110,7 @@ internal static class StringPool
         lock (Gate)
         {
             _index = null;
+            _lastIndex = null;
             _indexedCount = 0;
         }
     }
@@ -85,19 +123,21 @@ internal static class StringPool
         }
 
         IList<UndertaleString> strings = MslContext.Data.Strings;
-        if (_index is null || _indexedCount > strings.Count)
+        if (_index is null || _lastIndex is null || _indexedCount > strings.Count)
         {
             _index = new Dictionary<string, int>(strings.Count, StringComparer.Ordinal);
+            _lastIndex = new Dictionary<string, int>(strings.Count, StringComparer.Ordinal);
             _indexedCount = 0;
         }
 
-        // Appended entries only: their pool position is their index, and the first occurrence wins
-        // exactly like MakeString's linear search does.
+        // Appended entries only: their pool position is their index. The first occurrence is what
+        // MakeString's linear search returns; the last one is what the GML compiler binds literals to.
         for (int i = _indexedCount; i < strings.Count; i++)
         {
             if (strings[i]?.Content is string content)
             {
                 _index.TryAdd(content, i);
+                _lastIndex[content] = i;
             }
         }
 

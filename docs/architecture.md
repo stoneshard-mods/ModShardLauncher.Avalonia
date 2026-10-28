@@ -79,7 +79,7 @@ src/ModShardLauncher.Core/
 | `ModCatalog` | 扫描 `Mods/*.sml`、`ModSources/*.csproj`，实例化 `Mod` | 保留 `Enabled` 状态；单个包解析失败只记录 |
 | `PatchRunner` | 依次执行日志注入 → 各模组 `PatchMod()`（含 `ModWeapons` 写入）→ 掉落脚本注入 | 保持原顺序；异常转换为 `PatchDiagnostic` |
 | `TextureInjector` | PNG → 图集 → EmbeddedTexture/PageItem/Sprite/碰撞掩码 | 使用 SkiaSharp，算法与 GDI+ 版逐位对齐 |
-| `GameTableCodec` + `TableDraftStore` | 读写 `gml_GlobalScript_table_*`；写操作按批合并后统一编译 | 每个模组结束时、管线结束/保存前、以及读到该脚本前各 flush 一次；`table:<name>` 计时保留在 flush 处 |
+| `GameTableCodec` + `TableDraftStore` + `TableInstructionWriter` | 读写 `gml_GlobalScript_table_*`；写操作按批合并，flush 时直接重建脚本的数组指令（`push.s`/`conv` 对 + `@@NewGMLArray@@` 参数个数 + 开头分支偏移），形状不符才回退 GML 编译 | 每个模组结束时、管线结束/保存前、以及读到该脚本前各 flush 一次；`table:<name>` 计时保留在 flush 处；输出与 GML 编译路径逐字节一致 |
 | `GmlCompiler` | 复用 GML 编译器的资产 name→id 字典（`CompileContext` 其余状态每次新建） | 资产数量变化或 `Msl.SetObject` 改名时重建；替换 `UndertaleCode.ReplaceGML` 以减少每次编译 5.7 ms 的字典构建 |
 | `StringPool` / `CodeIndex` / `SpriteIndex` | 字符串池、代码、精灵的 O(1) 名称查找（替代库里的线性 `MakeString`/`ByName`/`First`） | 只增量同步尾部新增项；换数据文件时整体清空 |
 | `ModCompiler` | 调用 `ModShardPackerReference` 编译 `.sml` | 依赖 `ModShardLauncher.dll` 的磁盘路径 |

@@ -211,9 +211,9 @@ internal static class TableDraftStore
     }
 
     /// <summary>
-    /// Compiles one table using exactly the text the immediate implementation would have produced
-    /// for a single write: the current decompiled script with its array literal replaced by the
-    /// serialized rows. The <c>table:&lt;name&gt;</c> timing stage keeps measuring that compile.
+    /// Applies one table: the array literal is rebuilt at the instruction level when the script has
+    /// the expected shape, otherwise the table is compiled from its decompiled text (the previous
+    /// behaviour). The <c>table:&lt;name&gt;</c> timing stage measures both paths.
     /// </summary>
     private static void Write(string name, Draft draft)
     {
@@ -228,12 +228,16 @@ internal static class TableDraftStore
         {
             using PatchTimings.Scope timing = PatchTimings.Measure($"table:{name}");
 
-            // Decompile before touching the code: the text has to describe the script as it is now,
-            // exactly like GameTableCodec.SetTable did on every call.
-            string text = MslContext.DecompileText(draft.Code);
-            string serialized = JsonConvert.SerializeObject(draft.Rows).Replace("\n", "");
-            string replaced = Regex.Replace(text, "\\[.*\\]", serialized);
-            GmlCompiler.ReplaceGml(draft.Code, replaced);
+            if (!TableInstructionWriter.TryReplace(draft.Code, draft.Rows))
+            {
+                // Fallback: decompile the script as it is now and recompile it with the new array.
+                Log.Debug("Table {Name} has an unexpected shape; compiling it from GML instead", name);
+                string text = MslContext.DecompileText(draft.Code);
+                string serialized = JsonConvert.SerializeObject(draft.Rows).Replace("\n", "");
+                string replaced = Regex.Replace(text, "\\[.*\\]", serialized);
+                GmlCompiler.ReplaceGml(draft.Code, replaced);
+            }
+
             MslContext.InvalidateDecompiledText(draft.Code);
             draft.Dirty = false;
             Log.Information("Successfully set table: {0}", name);

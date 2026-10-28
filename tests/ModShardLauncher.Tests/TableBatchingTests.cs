@@ -1,5 +1,7 @@
 using ModShardLauncher;
 using ModShardLauncher.Mods;
+using UndertaleModLib;
+using UndertaleModLib.Models;
 using Xunit.Abstractions;
 
 namespace ModShardLauncherTest;
@@ -95,6 +97,57 @@ public class TableBatchingTests
         // Reading the same text twice must not recompile (the decompiled text is cached again).
         _ = Msl.GetStringGMLFromFile(WeaponsTable);
         Assert.Equal(1, CountStage($"table:{WeaponsTable}"));
+    }
+
+    /// <summary>
+    /// The write path rebuilds the array literal at the instruction level; this pins the shape the
+    /// GameMaker compiler produces (one push/conv pair per row, the count on
+    /// <c>@@NewGMLArray@@</c>, and the leading branch still skipping the body).
+    /// </summary>
+    [Fact]
+    public async Task TableWrite_RebuildsTheArrayLiteralAtInstructionLevel()
+    {
+        string? dataPath = PatchBaselineSupport.TryGetDataPath();
+        if (dataPath is null)
+        {
+            _output.WriteLine(PatchBaselineSupport.MissingDataMessage);
+            return;
+        }
+
+        GameDataService service = new();
+        await service.LoadAsync(dataPath);
+        PatchBaselineSupport.AssertVanilla(dataPath);
+
+        Msl.AddWeapon(new Weapon { Name = "msl_shape_probe", ID = "msl_shape_probe" });
+
+        UndertaleCode code = Msl.GetUMTCodeFromFile(WeaponsTable);
+        List<string> rows = Assert.IsType<List<string>>(GameTableCodec.GetTable(WeaponsTable));
+
+        int callIndex = code.Instructions.FindIndex(x =>
+            x.Kind == UndertaleInstruction.Opcode.Call
+            && x.Function?.Target?.Name?.Content == "@@NewGMLArray@@");
+        Assert.True(callIndex > 0, "the table script must still build an inline array");
+
+        Assert.Equal(rows.Count, code.Instructions[callIndex].ArgumentsCount);
+
+        int pushCount = code.Instructions.Count(x =>
+            x.Kind == UndertaleInstruction.Opcode.Push
+            && x.Value is UndertaleResourceById<UndertaleString, UndertaleChunkSTRG>);
+        Assert.Equal(rows.Count, pushCount);
+
+        // The leading branch has to skip the array body and land on the function registration tail.
+        UndertaleInstruction branch = code.Instructions[0];
+        Assert.Equal(UndertaleInstruction.Opcode.B, branch.Kind);
+        int exitIndex = code.Instructions.FindIndex(x => x.Kind == UndertaleInstruction.Opcode.Exit);
+        Assert.True(exitIndex > callIndex);
+        Assert.Equal(
+            (int)(code.Instructions[exitIndex + 1].Address - branch.Address),
+            branch.JumpOffset);
+
+        // The rebuilt script must read back as the same rows the table API reports.
+        string text = Msl.GetStringGMLFromFile(WeaponsTable);
+        Assert.Contains("msl_shape_probe", text, StringComparison.Ordinal);
+        Assert.Equal(rows, Assert.IsType<List<string>>(GameTableCodec.GetTable(WeaponsTable)));
     }
 
     private static int CountStage(string stage) =>
