@@ -30,7 +30,8 @@ public static class GameTableCodec
                 return tracked;
             }
 
-            UndertaleCode table = MslContext.Data.Code.First(t => t.Name.Content == name);
+            UndertaleCode table = CodeIndex.Find(name)
+                ?? MslContext.Data.Code.First(t => t.Name.Content == name);
             List<string> rows = table.Instructions
                 .Where(AssemblyWrapper.IsPushString)
                 .Select(i => (i.Value as UndertaleResourceById<UndertaleString, UndertaleChunkSTRG>)!.Resource.Content)

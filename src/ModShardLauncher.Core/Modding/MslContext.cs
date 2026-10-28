@@ -183,6 +183,10 @@ public static class MslContext
         ModLoader.WeaponDescriptions = new List<string>();
         LootTableRegistry.ResetLootTables();
         TableDraftStore.Reset();
+        StringPool.Reset();
+        CodeIndex.Reset();
+        SpriteIndex.Reset();
+        GmlCompiler.Reset();
         UndertaleIO.IsDictionaryCleared = false;
         _decompilerCache = null;
         DecompiledText.Clear();

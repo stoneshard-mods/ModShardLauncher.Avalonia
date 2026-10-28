@@ -85,7 +85,7 @@ namespace ModShardLauncher
             if ((newRoom.Caption != null) && !MslContext.Data.Strings.Any(s => s == captionToAdd))
                 MslContext.Data.Strings.Add(newRoom.Caption);
 
-            newRoom.CreationCodeId = (ccIdName == null) ? null : MslContext.Data.Code.ByName(ccIdName);
+            newRoom.CreationCodeId = (ccIdName == null) ? null : CodeIndex.Find(ccIdName);
         }
 
         static void ReadName(ref Utf8JsonReader reader, ref UndertaleRoom newRoom)
@@ -221,8 +221,8 @@ namespace ModShardLauncher
                     newObj.ImageIndex = (int)ReadNum(ref reader);
 
                     newObj.ObjectDefinition = (objDefName == null) ? null : MslContext.Data.GameObjects.ByName(objDefName);
-                    newObj.CreationCode = (ccIdName == null) ? null : MslContext.Data.Code.ByName(ccIdName);
-                    newObj.PreCreateCode = (preCcIdName == null) ? null : MslContext.Data.Code.ByName(preCcIdName);
+                    newObj.CreationCode = (ccIdName == null) ? null : CodeIndex.Find(ccIdName);
+                    newObj.PreCreateCode = (preCcIdName == null) ? null : CodeIndex.Find(preCcIdName);
                     ReadAnticipateJSONObject(ref reader, JsonTokenType.EndObject);
                     //remove empty instances
                     if (!MslContext.Data.IsGameMaker2() && newObj.ObjectDefinition != null && MslContext.Data.GameObjects.ByName(objDefName) != null)
@@ -406,9 +406,9 @@ namespace ModShardLauncher
 
                         newObj.ObjectDefinition = (objDefName == null) ? null : MslContext.Data.GameObjects.ByName(objDefName);
 
-                        newObj.CreationCode = (ccIdName == null) ? null : MslContext.Data.Code.ByName(ccIdName);
+                        newObj.CreationCode = (ccIdName == null) ? null : CodeIndex.Find(ccIdName);
 
-                        newObj.PreCreateCode = (preCcIdName == null) ? null : MslContext.Data.Code.ByName(preCcIdName);
+                        newObj.PreCreateCode = (preCcIdName == null) ? null : CodeIndex.Find(preCcIdName);
 
                         ReadAnticipateJSONObject(ref reader, JsonTokenType.EndObject);
                         //get rid of those nasty empty instances
@@ -756,8 +756,8 @@ namespace ModShardLauncher
             {
                 UndertaleRoom room = new()
                 {
-                    Name = MslContext.Data.Strings.MakeString(name),
-                    Caption = MslContext.Data.Strings.MakeString(""),
+                    Name = StringPool.Intern(name),
+                    Caption = StringPool.Intern(""),
                     Flags = UndertaleRoom.RoomEntryFlags.IsGMS2 ^ UndertaleRoom.RoomEntryFlags.EnableViews,
                 };
                 MslContext.Data.Rooms.Add(room);
@@ -840,7 +840,7 @@ namespace ModShardLauncher
 
             UndertaleRoom.Layer newLayer = new()
             {
-                LayerName = MslContext.Data.Strings.MakeString(name),
+                LayerName = StringPool.Intern(name),
                 LayerId = largest_layerid + 1,
                 LayerType = type,
                 LayerDepth = (int)layerDepth,

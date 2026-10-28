@@ -114,7 +114,7 @@ namespace ModShardLauncher
                 // doesnt exist so it can be added
                 UndertaleGameObject obj = new()
                 {
-                    Name = MslContext.Data.Strings.MakeString(name),
+                    Name = StringPool.Intern(name),
                     Sprite = sprite,
                     ParentId = parent,
                     Visible = isVisible,
@@ -152,6 +152,10 @@ namespace ModShardLauncher
         {
             (int indexObj, _) = MslContext.Data.GameObjects.Enumerate().First(t => t.Item2.Name.Content == name);
             MslContext.Data.GameObjects[indexObj] = o;
+
+            // Replacing an entry can rename it, which is the one asset change the compiler's cached
+            // name→id dictionary cannot detect by counting.
+            GmlCompiler.InvalidateAssets();
             Log.Information("Successfully replaced gameObject: {0}", name);
         }
     }

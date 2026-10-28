@@ -695,7 +695,7 @@ namespace ModShardLauncher
                 {
                     case PatchingWay.GML:
                         long compileStart = Stopwatch.GetTimestamp();
-                        fe.header.originalCode.ReplaceGML(newCode, MslContext.Data);
+                        GmlCompiler.ReplaceGml(fe.header.originalCode, newCode);
                         // The code entry changed: a later read must decompile it again.
                         MslContext.InvalidateDecompiledText(fe.header.originalCode);
                         double compileMs = ElapsedMs(joinStart, Stopwatch.GetTimestamp());

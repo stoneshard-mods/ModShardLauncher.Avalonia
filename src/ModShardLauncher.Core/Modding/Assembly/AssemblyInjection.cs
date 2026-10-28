@@ -141,7 +141,7 @@ namespace ModShardLauncher
                 throw new NullReferenceException("Data is null");
             }
 
-            UndertaleString str = MslContext.Data.Strings.MakeString(name, out int id);
+            UndertaleString str = StringPool.Intern(name, out int id);
             bool bytecode14 = MslContext.Data.GeneralInfo?.BytecodeVersion <= 14;
             uint oldId = MslContext.Data.VarCount1;
 
@@ -268,7 +268,7 @@ namespace ModShardLauncher
         }
         public static UndertaleResourceById<UndertaleString, UndertaleChunkSTRG> CreateString(string name)
         {
-            UndertaleString str = MslContext.Data.Strings.MakeString(name, out int ind);
+            UndertaleString str = StringPool.Intern(name, out int ind);
             Log.Information("Created string: {0}", str);
             return new UndertaleResourceById<UndertaleString, UndertaleChunkSTRG>(str, ind);
         }

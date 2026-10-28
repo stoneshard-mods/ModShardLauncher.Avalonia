@@ -36,20 +36,12 @@ internal static class TableDraftStore
     private static readonly Dictionary<string, Draft> Drafts = new(StringComparer.Ordinal);
     private static bool _flushing;
 
-    /// <summary>Content index of the string pool; rebuilt after a data file is loaded.</summary>
-    private static HashSet<string>? _stringIndex;
-
-    /// <summary>Number of string entries already present in <see cref="_stringIndex"/>.</summary>
-    private static int _indexedStringCount;
-
     /// <summary>Drops every draft; belongs to one loaded data file / one patch run.</summary>
     internal static void Reset()
     {
         lock (Gate)
         {
             Drafts.Clear();
-            _stringIndex = null;
-            _indexedStringCount = 0;
             _flushing = false;
         }
     }
@@ -103,7 +95,10 @@ internal static class TableDraftStore
             if (!Drafts.TryGetValue(name, out Draft? draft))
             {
                 // Same failure mode as the previous implementation: a missing table script throws.
-                draft = new Draft { Code = MslContext.Data.Code.First(t => t.Name?.Content == name) };
+                draft = new Draft
+                {
+                    Code = CodeIndex.Find(name) ?? MslContext.Data.Code.First(t => t.Name?.Content == name),
+                };
                 Drafts[name] = draft;
             }
 
@@ -133,8 +128,7 @@ internal static class TableDraftStore
     /// </para>
     /// <para>
     /// <see cref="MslContext.Data"/>'s string pool is a flat list (<c>MakeString</c> is a linear
-    /// search), so the "already present?" check goes through an index that is kept in sync with the
-    /// pool by appended ranges.
+    /// search), so the "already present?" check goes through <see cref="StringPool"/>.
     /// </para>
     /// </summary>
     private static void InternRows(List<string> rows)
@@ -144,49 +138,30 @@ internal static class TableDraftStore
             return;
         }
 
-        SyncStringIndex();
-
+        // Presence is decided before this batch appends anything: the compiler created one entry per
+        // literal occurrence, so two identical rows of the same write both got their own entry.
+        List<string>? missing = null;
         for (int i = rows.Count - 1; i >= 0; i--)
         {
             string? row = rows[i];
-            if (row is null || _stringIndex!.Contains(row))
+            if (row is null || StringPool.Contains(row))
             {
                 continue;
             }
 
-            // One entry per literal occurrence, like the compiler did; the index is deliberately
-            // not updated here so a second identical row also gets its own entry.
-            MslContext.Data.Strings.Add(new UndertaleString(row));
+            (missing ??= new List<string>()).Add(row);
         }
 
-        // The strings added above must be visible to the next write's "already present?" check.
-        SyncStringIndex();
-    }
-
-    /// <summary>Adds the string entries appended since the last call to the content index.</summary>
-    private static void SyncStringIndex()
-    {
-        if (!MslContext.HasData)
+        if (missing is null)
         {
             return;
         }
 
         IList<UndertaleString> strings = MslContext.Data.Strings;
-        if (_stringIndex is null || _indexedStringCount > strings.Count)
+        foreach (string row in missing)
         {
-            _stringIndex = new HashSet<string>(StringComparer.Ordinal);
-            _indexedStringCount = 0;
+            strings.Add(new UndertaleString(row));
         }
-
-        for (int i = _indexedStringCount; i < strings.Count; i++)
-        {
-            if (strings[i]?.Content is string content)
-            {
-                _stringIndex.Add(content);
-            }
-        }
-
-        _indexedStringCount = strings.Count;
     }
 
     /// <summary>Flushes the draft of <paramref name="code"/>, if that entry has a pending table write.</summary>
@@ -258,7 +233,7 @@ internal static class TableDraftStore
             string text = MslContext.DecompileText(draft.Code);
             string serialized = JsonConvert.SerializeObject(draft.Rows).Replace("\n", "");
             string replaced = Regex.Replace(text, "\\[.*\\]", serialized);
-            draft.Code.ReplaceGML(replaced, MslContext.Data);
+            GmlCompiler.ReplaceGml(draft.Code, replaced);
             MslContext.InvalidateDecompiledText(draft.Code);
             draft.Dirty = false;
             Log.Information("Successfully set table: {0}", name);

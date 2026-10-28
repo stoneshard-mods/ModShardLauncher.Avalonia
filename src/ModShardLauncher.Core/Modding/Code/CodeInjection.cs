@@ -86,7 +86,10 @@ namespace ModShardLauncher
         /// </summary>
         public static UndertaleCode GetUMTCodeFromFile(string fileName)
         {
-            UndertaleCode code = MslContext.Data.Code.First(t => t.Name?.Content == fileName);
+            // The index answers the common case in O(1); the linear scan stays as the fallback so the
+            // "no such entry" exception is the same one the library's First() produced.
+            UndertaleCode code = CodeIndex.Find(fileName)
+                ?? MslContext.Data.Code.First(t => t.Name?.Content == fileName);
 
             // A queued table write has to reach the script before its code entry is handed out, so
             // disassembly/compilation of that entry sees the rows the API already reports.
@@ -105,17 +108,17 @@ namespace ModShardLauncher
         {
             UndertaleCode code = new();
             UndertaleCodeLocals locals = new();
-            code.Name = MslContext.Data.Strings.MakeString(name);
+            code.Name = StringPool.Intern(name);
             locals.Name = code.Name;
             UndertaleCodeLocals.LocalVar argsLocal = new()
             {
-                Name = MslContext.Data.Strings.MakeString("arguments"),
+                Name = StringPool.Intern("arguments"),
                 Index = 0
             };
             locals.Locals.Add(argsLocal);
             code.LocalsCount = 1;
             MslContext.Data.CodeLocals.Add(locals);
-            code.ReplaceGML(codeAsString, MslContext.Data);
+            GmlCompiler.ReplaceGml(code, codeAsString);
             MslContext.Data.Code.Add(code);
             return code;
         }
@@ -129,11 +132,11 @@ namespace ModShardLauncher
         {
             UndertaleCode code = new();
             UndertaleCodeLocals locals = new();
-            code.Name = MslContext.Data.Strings.MakeString(name);
+            code.Name = StringPool.Intern(name);
             locals.Name = code.Name;
             UndertaleCodeLocals.LocalVar argsLocal = new()
             {
-                Name = MslContext.Data.Strings.MakeString("arguments"),
+                Name = StringPool.Intern("arguments"),
                 Index = 0
             };
             locals.Locals.Add(argsLocal);
@@ -198,7 +201,7 @@ namespace ModShardLauncher
         public static void SetStringGMLInFile(string codeAsString, string fileName)
         {
             UndertaleCode code = GetUMTCodeFromFile(fileName);
-            code.ReplaceGML(codeAsString, MslContext.Data);
+            GmlCompiler.ReplaceGml(code, codeAsString);
             MslContext.InvalidateDecompiledText(code);
         }
         /// <summary>

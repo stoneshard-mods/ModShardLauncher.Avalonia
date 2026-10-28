@@ -55,7 +55,7 @@ public sealed class TextureInjector
 
         UndertaleEmbeddedTexture embeddedTexture = new()
         {
-            Name = MslContext.Data.Strings.MakeString(mod.Name),
+            Name = StringPool.Intern(mod.Name),
         };
         embeddedTexture.TextureData.Image = GMImage.FromPng(png);
         MslContext.Data.EmbeddedTextures.Add(embeddedTexture);
@@ -89,7 +89,7 @@ public sealed class TextureInjector
                 continue;
             }
 
-            UndertaleSprite? sprite = MslContext.Data.Sprites.ByName(spriteName);
+            UndertaleSprite? sprite = SpriteIndex.Find(spriteName);
             UndertaleSprite.TextureEntry textureEntry = new() { Texture = pageItem };
 
             if (sprite is null)

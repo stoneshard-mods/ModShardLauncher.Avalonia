@@ -65,7 +65,7 @@ namespace ModShardLauncher
         {
             return new()
             {
-                Name = MslContext.Data.Strings.MakeString("PageItem " + MslContext.Data.TexturePageItems.Count),
+                Name = StringPool.Intern("PageItem " + MslContext.Data.TexturePageItems.Count),
 
                 SourceX = source.X,
                 SourceY = source.Y,
@@ -86,7 +86,7 @@ namespace ModShardLauncher
         {
             UndertaleSprite newSprite = new()
             {
-                Name = MslContext.Data.Strings.MakeString(spriteName),
+                Name = StringPool.Intern(spriteName),
                 Width = bounding.Width,
                 Height = bounding.Height,
                 MarginLeft = margin.Left,
@@ -101,7 +101,8 @@ namespace ModShardLauncher
         }
         public static UndertaleSprite GetSprite(string name)
         {
-            UndertaleSprite sprite = MslContext.Data.Sprites.First(t => t.Name.Content == name);
+            UndertaleSprite sprite = SpriteIndex.Find(name)
+                ?? MslContext.Data.Sprites.First(t => t.Name.Content == name);
             Log.Information("Found sprite: {0}", name);
             return sprite;
         }
