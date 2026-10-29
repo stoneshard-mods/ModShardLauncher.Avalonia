@@ -2,7 +2,7 @@
 
 面向想为《石质碎片》（Stoneshard）写 C# 模组的人。本文按**本仓库（Avalonia + .NET 10 重构版）的实际行为**编写，章节结构参考官方文档 [开始](https://modshardteam.github.io/ModShardLauncher/zh/guides/start-modding.html)；与官方文档、以及旧版 WPF 教程不一致的地方，在 [§10](#10-与官方文档的差异与已知缺陷) 集中说明并给出原因。
 
-> 本文对应启动器 **v0.13.2.0**。文中代码在 `data-o.win` 上完整跑过：编译 → 打补丁 → 读回校验，验证方式见 [§11](#11-验证与调试)。若以后代码行为变了，以 `src/ModShardLauncher.Core/` 为准。
+> 本文对应启动器 **v0.13.2.0**。文中代码在 `original.win` 上完整跑过：编译 → 打补丁 → 读回校验，验证方式见 [§11](#11-验证与调试)。若以后代码行为变了，以 `src/ModShardLauncher.Core/` 为准。
 >
 > 这个版本对齐了武器表 API：`Weapon` / `CloneDefaults` / `GetWeapon` / `SetWeapon` / `ModWeapons` / `InjectTableWeapons` 都能正常工作了。如果你看的是旧版教程里“这些 API 会写坏数据、只能手改表”的说明，那是 v0.13.2.0 之前的限制，见 [§10.1](#101-已修复旧教程里的坑现在不用绕)。
 
@@ -40,7 +40,7 @@
 |---|---|
 | Windows 10 / 11 x64 | 游戏只支持 Windows |
 | .NET SDK 10.0.4xx | **只在开发机需要**：在 IDE 里写代码、`dotnet build` 验证。真正的打包由启动器内置的 Roslyn 完成，玩家机器不需要 SDK |
-| 一份原版 `data.win` | Steam 正式版或 `modbranch`。示例使用安装目录里的 `data-o.win`；不要用已经打过补丁的文件（表结构会被上一次补丁影响） |
+| 一份原版 `data.win` | Steam 正式版或 `modbranch`。示例使用安装目录里的 `original.win`；不要用已经打过补丁的文件（表结构会被上一次补丁影响） |
 | 启动器 | `ModShardLauncher.GUI.exe`（图形界面）或 `ModShardLauncher.CLI.exe`（命令行） |
 
 ## 3. 目录：文件放在哪
