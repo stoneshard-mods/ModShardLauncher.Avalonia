@@ -167,4 +167,88 @@ public class GameLauncherTests
             }
         }
     }
+
+    /// <summary>
+    /// A direct launch only survives because Steamworks finds the app id in <c>steam_appid.txt</c>;
+    /// without it <c>SteamAPI_RestartAppIfNecessary</c> hands the launch back to Steam and the process
+    /// exits. The file must be plain ASCII/UTF-8 without a BOM, as the runtime parses it verbatim.
+    /// </summary>
+    [Fact]
+    public void EnsureSteamAppIdFile_WritesTheAppId_WithoutABom()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"msl-appid-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+
+        try
+        {
+            GameLauncher.EnsureSteamAppIdFile(directory);
+
+            string path = Path.Combine(directory, GameLauncher.SteamAppIdFileName);
+            byte[] bytes = File.ReadAllBytes(path);
+            Assert.False(
+                bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF,
+                "the file must be UTF-8 without a BOM");
+            Assert.Equal(GameLauncher.SteamAppId, File.ReadAllText(path).Trim());
+        }
+        finally
+        {
+            Directory.Delete(directory, true);
+        }
+    }
+
+    /// <summary>A file that already holds the right id is not rewritten (the game folder may be read-only).</summary>
+    [Fact]
+    public void EnsureSteamAppIdFile_LeavesACorrectFileAlone()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"msl-appid-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        string path = Path.Combine(directory, GameLauncher.SteamAppIdFileName);
+
+        try
+        {
+            File.WriteAllText(path, GameLauncher.SteamAppId);
+            File.SetAttributes(path, FileAttributes.ReadOnly);
+
+            GameLauncher.EnsureSteamAppIdFile(directory);
+
+            File.SetAttributes(path, FileAttributes.Normal);
+            Assert.Equal(GameLauncher.SteamAppId, File.ReadAllText(path).Trim());
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.SetAttributes(path, FileAttributes.Normal);
+            }
+
+            Directory.Delete(directory, true);
+        }
+    }
+
+    /// <summary>The id of another game would make Steamworks report the wrong app, so it is replaced.</summary>
+    [Fact]
+    public void EnsureSteamAppIdFile_RepairsAStaleValue()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"msl-appid-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        string path = Path.Combine(directory, GameLauncher.SteamAppIdFileName);
+
+        try
+        {
+            File.WriteAllText(path, "480");
+
+            GameLauncher.EnsureSteamAppIdFile(directory);
+
+            Assert.Equal(GameLauncher.SteamAppId, File.ReadAllText(path).Trim());
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.SetAttributes(path, FileAttributes.Normal);
+            }
+
+            Directory.Delete(directory, true);
+        }
+    }
 }

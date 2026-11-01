@@ -20,6 +20,18 @@ public class UserSettings
     /// <summary>When enabled, loading data.win also writes the item/weapon/armor CSV manifests.</summary>
     public bool ExportManifests = false;
 
+    /// <summary>
+    /// When enabled, Stoneshard is started straight from its own executable instead of being handed
+    /// to Steam through <c>steam://rungameid</c>. See <see cref="GameLauncher"/> for the trade-offs.
+    /// </summary>
+    public bool DirectLaunch = false;
+
+    /// <summary>
+    /// Folder that contains <c>StoneShard.exe</c>, remembered on the last load so a direct launch also
+    /// works in a fresh session, before any data file has been opened.
+    /// </summary>
+    public string GameDirectory = string.Empty;
+
     public List<string> EnabledMods = new();
 }
 

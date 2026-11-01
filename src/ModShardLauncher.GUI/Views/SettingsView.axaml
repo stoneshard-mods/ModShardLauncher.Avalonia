@@ -43,6 +43,15 @@
       </Border>
 
       <Border Classes="card">
+        <StackPanel Spacing="8">
+          <TextBlock Text="{Binding DirectLaunchLabel}" Classes="section" />
+          <ToggleSwitch IsChecked="{Binding DirectLaunch, Mode=TwoWay}"
+                        OnContent="{loc:Tr CommonOn}" OffContent="{loc:Tr CommonOff}" />
+          <TextBlock Text="{Binding DirectLaunchHint}" Classes="caption" TextWrapping="Wrap" />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card">
         <StackPanel Spacing="12">
           <TextBlock Text="{Binding FoldersLabel}" Classes="section" />
 

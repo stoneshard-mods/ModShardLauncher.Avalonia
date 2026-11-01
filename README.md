@@ -16,7 +16,7 @@
 ## 功能
 
 - 打开原版 `data.win`，扫描 `Mods/*.sml`，启用/禁用模组，打补丁并另存为新文件。
-- 一键启动游戏：通过 Steam（`steam://rungameid/625960`）启动 Stoneshard；可先用「窗口 / 全屏」选项改写游戏 `settings.ini` 的 `displayMode` 再启动（只改这一行，其余行原样保留）。
+- 一键启动游戏：默认通过 Steam（`steam://rungameid/625960`）启动 Stoneshard；可先用「窗口 / 全屏」选项改写游戏 `settings.ini` 的 `displayMode` 再启动（只改这一行，其余行原样保留）。设置中开启「直接启动」后改为直接运行 `StoneShard.exe`（会在游戏目录写入 `steam_appid.txt`，否则游戏会把启动交还 Steam；此模式下成就、Rich Presence 与云同步不可用）。
 - 打补丁可以取消：GUI 忙碌遮罩上有「取消」按钮，CLI 按 Ctrl+C。流水线只在“mod 之间”和“写入目标文件之前”停下，因此取消不会留下半成品输出文件。
 - 拒绝在已打补丁的文件上二次打补丁：检测到 `o_msl_timer` 会直接给出明确错误，而不是先重复注入日志钩子再报“事件已存在”。
 - 打开数据文件时，选择器默认定位到 Steam 安装目录 `C:\Program Files (x86)\Steam\steamapps\common\Stoneshard`；该目录不存在时回退到当前工作目录。

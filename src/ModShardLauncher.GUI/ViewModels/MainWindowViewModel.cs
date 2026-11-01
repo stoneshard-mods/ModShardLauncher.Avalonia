@@ -197,7 +197,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     {
         try
         {
-            GameLauncher.Launch(displayMode);
+            GameLauncher.Launch(displayMode, Settings.DirectLaunch, ResolveGameDirectory());
             SetStatus("StatusLaunching");
         }
         catch (Exception ex)
@@ -209,6 +209,35 @@ public sealed partial class MainWindowViewModel : ObservableObject
                 ex.Message,
                 ex.ToString());
         }
+    }
+
+    /// <summary>
+    /// Folder of the currently loaded data file, or the one remembered from a previous session. A
+    /// direct launch needs it to find <c>StoneShard.exe</c>; Steam does not.
+    /// </summary>
+    private string? ResolveGameDirectory()
+    {
+        string dataPath = _services.GameData.DataPath;
+        if (!string.IsNullOrEmpty(dataPath))
+        {
+            return Path.GetDirectoryName(dataPath);
+        }
+
+        return string.IsNullOrEmpty(Settings.GameDirectory) ? null : Settings.GameDirectory;
+    }
+
+    /// <summary>Remembers the folder of a freshly loaded data file so the next direct launch finds the game.</summary>
+    private void RememberGameDirectory(string dataFilePath)
+    {
+        string? directory = Path.GetDirectoryName(dataFilePath);
+        if (string.IsNullOrEmpty(directory)
+            || string.Equals(Settings.GameDirectory, directory, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        Settings.GameDirectory = directory;
+        SaveSettings();
     }
 
     /// <summary>
@@ -253,6 +282,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
             await _services.GameData.LoadAsync(path);
             _dataNeedsReload = false;
             DataFileName = Path.GetFileName(path);
+            RememberGameDirectory(path);
             await ReloadCatalogCoreAsync();
             SetStatus("StatusLoaded", DataFileName);
         });

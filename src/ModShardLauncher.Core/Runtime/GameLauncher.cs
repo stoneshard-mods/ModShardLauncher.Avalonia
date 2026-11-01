@@ -18,13 +18,18 @@ public enum GameDisplayMode
 }
 
 /// <summary>
-/// Starts Stoneshard through Steam, optionally switching its display mode first.
+/// Starts Stoneshard, optionally switching its display mode first.
 /// <para>
-/// Same approach as the stone-tool-box launcher: the game is not started directly (that would bypass
-/// Steam's own launch options and cloud sync), it is started with the registered Steam protocol
-/// handler, i.e. <c>steam://rungameid/625960</c>. The display mode lives in the game's own
-/// <c>%LOCALAPPDATA%\StoneShard\settings.ini</c> under <c>[video]</c>; only the
-/// <c>displayMode="…"</c> line is rewritten, every other line is preserved verbatim.
+/// By default the game is handed to Steam with the registered protocol handler
+/// (<c>steam://rungameid/625960</c>), which keeps Steam's own launch options and cloud sync working.
+/// The "direct launch" mode starts <c>StoneShard.exe</c> itself instead, after dropping
+/// <see cref="SteamAppIdFileName"/> so the Steamworks runtime no longer restarts the game through
+/// Steam; the game runs with the client closed, but its Steam features stay inert.
+/// </para>
+/// <para>
+/// The display mode lives in the game's own <c>%LOCALAPPDATA%\StoneShard\settings.ini</c> under
+/// <c>[video]</c>; only the <c>displayMode="…"</c> line is rewritten, every other line is preserved
+/// verbatim.
 /// </para>
 /// </summary>
 public static class GameLauncher
@@ -34,6 +39,16 @@ public static class GameLauncher
 
     /// <summary>URI the Steam protocol handler turns into "run app 625960".</summary>
     public const string SteamRunUri = "steam://rungameid/" + SteamAppId;
+
+    /// <summary>
+    /// File the Steamworks runtime reads to resolve the app id on its own. Without it
+    /// <c>SteamAPI_RestartAppIfNecessary</c> hands the launch back to Steam and the process exits,
+    /// so it is the one thing a direct launch has to provide.
+    /// </summary>
+    public const string SteamAppIdFileName = "steam_appid.txt";
+
+    /// <summary>Executable started by a direct launch (note the capital S).</summary>
+    public const string GameExecutableName = "StoneShard.exe";
 
     private const string ProcessName = "Stoneshard";
     private const string SettingsFileName = "settings.ini";
@@ -214,11 +229,23 @@ public static class GameLauncher
     }
 
     /// <summary>
-    /// Starts Stoneshard through Steam. When <paramref name="displayMode"/> is given the game's
-    /// display mode is written first, so the next start uses it.
+    /// Starts Stoneshard, either through Steam (the default) or straight from its own executable.
+    /// When <paramref name="displayMode"/> is given the game's display mode is written first, so the
+    /// next start uses it.
     /// </summary>
-    /// <exception cref="InvalidOperationException">Steam is not installed/running, or the settings file cannot be written.</exception>
-    public static void Launch(GameDisplayMode? displayMode = null)
+    /// <param name="displayMode">Display mode to persist before starting, or <c>null</c> to keep the current one.</param>
+    /// <param name="directLaunch">
+    /// When <c>true</c> the game executable is started directly instead of being handed to Steam, which
+    /// costs achievements, rich presence and cloud sync while the Steam client stays closed.
+    /// </param>
+    /// <param name="gameDirectory">Folder holding <see cref="GameExecutableName"/>; required for a direct launch.</param>
+    /// <exception cref="InvalidOperationException">
+    /// The launch cannot be started, the game folder is not writable, or the settings file cannot be written.
+    /// </exception>
+    public static void Launch(
+        GameDisplayMode? displayMode = null,
+        bool directLaunch = false,
+        string? gameDirectory = null)
     {
         if (displayMode is { } mode)
         {
@@ -229,6 +256,12 @@ public static class GameLauncher
         {
             Log.Warning(
                 "Stoneshard is already running; a display-mode change only takes effect on the next start");
+        }
+
+        if (directLaunch)
+        {
+            LaunchDirect(gameDirectory);
+            return;
         }
 
         Log.Information(
@@ -244,6 +277,79 @@ public static class GameLauncher
         {
             throw new InvalidOperationException(
                 "Cannot start Stoneshard through Steam. Make sure Steam is installed and running, then try again.",
+                ex);
+        }
+    }
+
+    /// <summary>
+    /// Starts <see cref="GameExecutableName"/> from <paramref name="gameDirectory"/> while Steam stays
+    /// closed. Without the Steam client the game runs, but Steam features are inert.
+    /// </summary>
+    private static void LaunchDirect(string? gameDirectory)
+    {
+        if (string.IsNullOrWhiteSpace(gameDirectory))
+        {
+            throw new InvalidOperationException(
+                "The Stoneshard installation folder is unknown. Open the game's data.win once so the launcher can remember it, then try again.");
+        }
+
+        string executable = Path.Combine(gameDirectory, GameExecutableName);
+        if (!File.Exists(executable))
+        {
+            throw new InvalidOperationException(
+                $"Cannot find '{executable}'. Open the game's data.win from the same folder so the launcher can remember the installation.");
+        }
+
+        EnsureSteamAppIdFile(gameDirectory);
+
+        Log.Information(
+            "Starting Stoneshard directly from {Path} (Steam bypassed); display mode is {Mode}",
+            executable,
+            ReadDisplayMode()?.ToString() ?? "unknown");
+
+        try
+        {
+            Process.Start(new ProcessStartInfo(executable)
+            {
+                WorkingDirectory = gameDirectory,
+                UseShellExecute = false,
+            })?.Dispose();
+        }
+        catch (Exception ex) when (ex is Win32Exception or InvalidOperationException or PlatformNotSupportedException)
+        {
+            throw new InvalidOperationException($"Cannot start '{executable}'.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Writes <see cref="SteamAppIdFileName"/> (content <see cref="SteamAppId"/>) next to the game
+    /// executable when it is missing or stale. The Steamworks runtime then resolves the app id itself,
+    /// so <c>SteamAPI_RestartAppIfNecessary</c> no longer restarts the game through Steam and the
+    /// process survives outside of the client.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// The game folder is not writable, which is the normal case for a non-elevated process under
+    /// <c>Program Files</c>.
+    /// </exception>
+    internal static void EnsureSteamAppIdFile(string gameDirectory)
+    {
+        string path = Path.Combine(gameDirectory, SteamAppIdFileName);
+        try
+        {
+            if (File.Exists(path)
+                && string.Equals(File.ReadAllText(path).Trim(), SteamAppId, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            File.WriteAllText(path, SteamAppId, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+            Log.Information("Wrote {Path} so Steamworks resolves app {AppId} without Steam", path, SteamAppId);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            throw new InvalidOperationException(
+                $"Cannot write '{path}'. Starting Stoneshard without Steam needs write access to the game folder; "
+                + "run the launcher as administrator or use the Steam launch instead.",
                 ex);
         }
     }

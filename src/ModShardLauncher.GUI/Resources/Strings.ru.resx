@@ -114,4 +114,6 @@ UndertaleModTool {1}
   <data name="SettingsDataFolder" xml:space="preserve"><value>Данные пользователя</value></data>
   <data name="SettingsExport" xml:space="preserve"><value>Экспорт списков</value></data>
   <data name="SettingsExportHint" xml:space="preserve"><value>Если включено, при открытии data.win создаются CSV-списки предметов, оружия и брони в папке export. По умолчанию выключено.</value></data>
+  <data name="SettingsDirectLaunch" xml:space="preserve"><value>Прямой запуск</value></data>
+  <data name="SettingsDirectLaunchHint" xml:space="preserve"><value>Запускать Stoneshard напрямую из исполняемого файла игры, не передавая его Steam. Лаунчер создаёт steam_appid.txt в папке игры (берётся из последнего открытого data.win), для чего нужен доступ на запись; пока клиент Steam закрыт, достижения, Rich Presence и облачная синхронизация недоступны.</value></data>
 </root>

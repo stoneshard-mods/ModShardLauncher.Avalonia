@@ -1,5 +1,9 @@
 bin/
 obj/
+.tmp/
+tmp/
+.test/
+test/
 .vs/
 *.user
 *.suo

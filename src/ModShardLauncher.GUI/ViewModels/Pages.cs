@@ -167,6 +167,7 @@ public sealed partial class SettingsViewModel : ObservableObject
             : Languages[0];
         _enableLogger = main.Settings.EnableLogger;
         _exportManifests = main.Settings.ExportManifests;
+        _directLaunch = main.Settings.DirectLaunch;
     }
 
     public MainWindowViewModel Main => _main;
@@ -182,6 +183,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private bool _exportManifests;
 
+    [ObservableProperty]
+    private bool _directLaunch;
+
     public string SettingsTitle => LocalizationService.Instance["SettingsTitle"];
     public string LanguageLabel => LocalizationService.Instance["SettingsLanguage"];
     public string LanguageHint => LocalizationService.Instance["SettingsLanguageHint"];
@@ -189,6 +193,8 @@ public sealed partial class SettingsViewModel : ObservableObject
     public string LoggerHint => LocalizationService.Instance["SettingsLoggerHint"];
     public string ExportLabel => LocalizationService.Instance["SettingsExport"];
     public string ExportHint => LocalizationService.Instance["SettingsExportHint"];
+    public string DirectLaunchLabel => LocalizationService.Instance["SettingsDirectLaunch"];
+    public string DirectLaunchHint => LocalizationService.Instance["SettingsDirectLaunchHint"];
     public string FoldersLabel => LocalizationService.Instance["SettingsPaths"];
     public string DataFolderLabel => LocalizationService.Instance["SettingsDataFolder"];
     public string ModsFolderLabel => LocalizationService.Instance["SettingsModsFolder"];
@@ -235,6 +241,12 @@ public sealed partial class SettingsViewModel : ObservableObject
         _main.SaveSettings();
     }
 
+    partial void OnDirectLaunchChanged(bool value)
+    {
+        _main.Settings.DirectLaunch = value;
+        _main.SaveSettings();
+    }
+
     [RelayCommand]
     private void OpenDataFolder() => _main.OpenFolder(AppPaths.DataDirectory);
 
@@ -259,6 +271,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         OnPropertyChanged(nameof(LoggerHint));
         OnPropertyChanged(nameof(ExportLabel));
         OnPropertyChanged(nameof(ExportHint));
+        OnPropertyChanged(nameof(DirectLaunchLabel));
+        OnPropertyChanged(nameof(DirectLaunchHint));
         OnPropertyChanged(nameof(FoldersLabel));
         OnPropertyChanged(nameof(DataFolderLabel));
         OnPropertyChanged(nameof(ModsFolderLabel));
