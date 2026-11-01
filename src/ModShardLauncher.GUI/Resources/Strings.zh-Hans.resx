@@ -115,5 +115,8 @@ Stoneshard 社区模组工具。
   <data name="SettingsExport" xml:space="preserve"><value>导出清单</value></data>
   <data name="SettingsExportHint" xml:space="preserve"><value>开启后，每次打开 data.win 会在 export 文件夹生成物品、武器、护甲 CSV 清单；默认关闭。</value></data>
   <data name="SettingsDirectLaunch" xml:space="preserve"><value>直接启动</value></data>
+  <data name="SettingsGameFolder" xml:space="preserve"><value>游戏目录</value></data>
+  <data name="SettingsGameFolderUnknown" xml:space="preserve"><value>尚未设置</value></data>
+  <data name="SettingsBrowse" xml:space="preserve"><value>浏览…</value></data>
   <data name="SettingsDirectLaunchHint" xml:space="preserve"><value>直接从游戏自身的可执行文件启动 Stoneshard，不交给 Steam。启动器会在游戏目录（取自最近打开的 data.win）写入 steam_appid.txt，这需要该目录的写入权限；Steam 客户端保持关闭时，成就、Rich Presence 与云同步不可用。</value></data>
 </root>

@@ -168,6 +168,18 @@ public sealed partial class SettingsViewModel : ObservableObject
         _enableLogger = main.Settings.EnableLogger;
         _exportManifests = main.Settings.ExportManifests;
         _directLaunch = main.Settings.DirectLaunch;
+
+        // Remember the installation as soon as possible, so a direct launch never depends on the
+        // user opening a data file first.
+        if (string.IsNullOrEmpty(main.Settings.GameDirectory))
+        {
+            string? detected = GameLauncher.TryDetectGameDirectory();
+            if (detected is not null)
+            {
+                main.Settings.GameDirectory = detected;
+                main.SaveSettings();
+            }
+        }
     }
 
     public MainWindowViewModel Main => _main;
@@ -195,6 +207,11 @@ public sealed partial class SettingsViewModel : ObservableObject
     public string ExportHint => LocalizationService.Instance["SettingsExportHint"];
     public string DirectLaunchLabel => LocalizationService.Instance["SettingsDirectLaunch"];
     public string DirectLaunchHint => LocalizationService.Instance["SettingsDirectLaunchHint"];
+    public string GameFolderLabel => LocalizationService.Instance["SettingsGameFolder"];
+    public string BrowseLabel => LocalizationService.Instance["SettingsBrowse"];
+    public string GameFolder => string.IsNullOrEmpty(_main.Settings.GameDirectory)
+        ? LocalizationService.Instance["SettingsGameFolderUnknown"]
+        : _main.Settings.GameDirectory;
     public string FoldersLabel => LocalizationService.Instance["SettingsPaths"];
     public string DataFolderLabel => LocalizationService.Instance["SettingsDataFolder"];
     public string ModsFolderLabel => LocalizationService.Instance["SettingsModsFolder"];
@@ -247,6 +264,21 @@ public sealed partial class SettingsViewModel : ObservableObject
         _main.SaveSettings();
     }
 
+    /// <summary>Lets the user point at the installation; detection already ran when the page was shown.</summary>
+    [RelayCommand]
+    private async Task PickGameFolderAsync()
+    {
+        string? folder = await _main.Services.Dialogs.PickGameFolderAsync(_main.Settings.GameDirectory);
+        if (folder is null)
+        {
+            return;
+        }
+
+        _main.Settings.GameDirectory = folder;
+        _main.SaveSettings();
+        OnPropertyChanged(nameof(GameFolder));
+    }
+
     [RelayCommand]
     private void OpenDataFolder() => _main.OpenFolder(AppPaths.DataDirectory);
 
@@ -273,6 +305,9 @@ public sealed partial class SettingsViewModel : ObservableObject
         OnPropertyChanged(nameof(ExportHint));
         OnPropertyChanged(nameof(DirectLaunchLabel));
         OnPropertyChanged(nameof(DirectLaunchHint));
+        OnPropertyChanged(nameof(GameFolderLabel));
+        OnPropertyChanged(nameof(BrowseLabel));
+        OnPropertyChanged(nameof(GameFolder));
         OnPropertyChanged(nameof(FoldersLabel));
         OnPropertyChanged(nameof(DataFolderLabel));
         OnPropertyChanged(nameof(ModsFolderLabel));

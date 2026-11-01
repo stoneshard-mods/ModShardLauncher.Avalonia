@@ -50,6 +50,16 @@ public static class GameLauncher
     /// <summary>Executable started by a direct launch (note the capital S).</summary>
     public const string GameExecutableName = "StoneShard.exe";
 
+    /// <summary>Folder name of the game inside a Steam library (<c>steamapps\common</c>).</summary>
+    public const string GameFolderName = "Stoneshard";
+
+    /// <summary>Steam roots tried when the installation has to be located on disk.</summary>
+    private static readonly string[] SteamRootCandidates =
+    [
+        @"C:\Program Files (x86)\Steam",
+        @"C:\Program Files\Steam",
+        @"C:\Steam",
+    ];
     private const string ProcessName = "Stoneshard";
     private const string SettingsFileName = "settings.ini";
 
@@ -60,6 +70,11 @@ public static class GameLauncher
 
     private static readonly Regex VideoSectionLine = new(
         @"^\s*\[video\]\s*$",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    /// <summary>A <c>"path" "…"</c> entry of <c>steamapps\libraryfolders.vdf</c>.</summary>
+    private static readonly Regex LibraryPathLine = new(
+        @"""path""\s+""([^""]+)""",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     /// <summary>The game's per-user data folder (<c>settings.ini</c>, saves, ...).</summary>
@@ -290,14 +305,14 @@ public static class GameLauncher
         if (string.IsNullOrWhiteSpace(gameDirectory))
         {
             throw new InvalidOperationException(
-                "The Stoneshard installation folder is unknown. Open the game's data.win once so the launcher can remember it, then try again.");
+                "The Stoneshard installation folder is unknown. Set it in Settings under \"Direct launch\", or open the game's data.win once so the launcher can remember it.");
         }
 
         string executable = Path.Combine(gameDirectory, GameExecutableName);
         if (!File.Exists(executable))
         {
             throw new InvalidOperationException(
-                $"Cannot find '{executable}'. Open the game's data.win from the same folder so the launcher can remember the installation.");
+                $"Cannot find '{executable}'. Point the game folder in Settings at the folder that contains {GameExecutableName}.");
         }
 
         EnsureSteamAppIdFile(gameDirectory);
@@ -318,6 +333,81 @@ public static class GameLauncher
         catch (Exception ex) when (ex is Win32Exception or InvalidOperationException or PlatformNotSupportedException)
         {
             throw new InvalidOperationException($"Cannot start '{executable}'.", ex);
+        }
+    }
+
+    /// <summary>Whether <paramref name="directory"/> is the game's installation folder.</summary>
+    public static bool IsGameFolder(string? directory) =>
+        !string.IsNullOrWhiteSpace(directory)
+        && File.Exists(Path.Combine(directory, GameExecutableName));
+
+    /// <summary>
+    /// Locates the installation so a direct launch works without the user having opened a data file
+    /// first. Walks the usual Steam roots, then the extra libraries listed in
+    /// <c>steamapps\libraryfolders.vdf</c>. Returns <c>null</c> when nothing is found.
+    /// </summary>
+    public static string? TryDetectGameDirectory()
+    {
+        foreach (string root in SteamRootCandidates)
+        {
+            string? found = FindInSteamLibrary(root);
+            if (found is not null)
+            {
+                Log.Information("Detected the Stoneshard installation at {Path}", found);
+                return found;
+            }
+        }
+
+        Log.Debug("No Stoneshard installation found in the known Steam roots");
+        return null;
+    }
+
+    /// <summary>Looks for the game in <paramref name="steamRoot"/> and in the libraries it lists.</summary>
+    private static string? FindInSteamLibrary(string steamRoot)
+    {
+        string direct = Path.Combine(steamRoot, "steamapps", "common", GameFolderName);
+        if (IsGameFolder(direct))
+        {
+            return direct;
+        }
+
+        string libraryFolders = Path.Combine(steamRoot, "steamapps", "libraryfolders.vdf");
+        if (!File.Exists(libraryFolders))
+        {
+            return null;
+        }
+
+        try
+        {
+            foreach (string library in ReadLibraryFolders(libraryFolders))
+            {
+                string candidate = Path.Combine(library, "steamapps", "common", GameFolderName);
+                if (IsGameFolder(candidate))
+                {
+                    return candidate;
+                }
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Log.Debug(ex, "Cannot read the Steam library list {Path}", libraryFolders);
+        }
+
+        return null;
+    }
+
+    /// <summary>Extracts the <c>"path" "…"</c> entries of a <c>libraryfolders.vdf</c> file.</summary>
+    internal static IEnumerable<string> ReadLibraryFolders(string vdfPath)
+    {
+        foreach (string line in File.ReadLines(vdfPath))
+        {
+            // Fully qualified: this namespace also has a type called Match.
+            System.Text.RegularExpressions.Match match = LibraryPathLine.Match(line);
+            if (match.Success)
+            {
+                // VDF escapes backslashes, so "D:\\SteamLibrary" has to become "D:\SteamLibrary".
+                yield return match.Groups[1].Value.Replace(@"\\", @"\");
+            }
         }
     }
 

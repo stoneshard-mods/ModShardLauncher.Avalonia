@@ -104,6 +104,36 @@ public sealed class DialogService
         return file?.TryGetLocalPath();
     }
 
+    /// <summary>
+    /// Lets the user point at the Stoneshard installation explicitly. Needed when the automatic
+    /// detection misses a non-standard Steam library and no data file has been opened yet.
+    /// </summary>
+    public async Task<string?> PickGameFolderAsync(string? currentFolder)
+    {
+        if (_owner is null)
+        {
+            return null;
+        }
+
+        IStorageFolder? startLocation = null;
+        if (!string.IsNullOrWhiteSpace(currentFolder))
+        {
+            startLocation = await _owner.StorageProvider.TryGetFolderFromPathAsync(currentFolder);
+        }
+
+        startLocation ??= await ResolveInitialFolderAsync();
+
+        IReadOnlyList<IStorageFolder> folders = await _owner.StorageProvider.OpenFolderPickerAsync(
+            new FolderPickerOpenOptions
+            {
+                Title = LocalizationService.Instance["SettingsGameFolder"],
+                AllowMultiple = false,
+                SuggestedStartLocation = startLocation,
+            });
+
+        return folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
+    }
+
     public async Task ShowErrorAsync(string title, string message, string? details = null)
     {
         if (_owner is null)

@@ -212,25 +212,43 @@ public sealed partial class MainWindowViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Folder of the currently loaded data file, or the one remembered from a previous session. A
-    /// direct launch needs it to find <c>StoneShard.exe</c>; Steam does not.
+    /// Folder of the currently loaded data file, the one the user picked in the settings, or the
+    /// installation found in the known Steam folders. A direct launch needs it to find
+    /// <c>StoneShard.exe</c>; Steam does not.
     /// </summary>
     private string? ResolveGameDirectory()
     {
         string dataPath = _services.GameData.DataPath;
         if (!string.IsNullOrEmpty(dataPath))
         {
-            return Path.GetDirectoryName(dataPath);
+            string? loaded = Path.GetDirectoryName(dataPath);
+            if (GameLauncher.IsGameFolder(loaded))
+            {
+                RememberGameDirectory(dataPath);
+                return loaded;
+            }
         }
 
-        return string.IsNullOrEmpty(Settings.GameDirectory) ? null : Settings.GameDirectory;
+        if (GameLauncher.IsGameFolder(Settings.GameDirectory))
+        {
+            return Settings.GameDirectory;
+        }
+
+        string? detected = GameLauncher.TryDetectGameDirectory();
+        if (detected is not null)
+        {
+            Settings.GameDirectory = detected;
+            SaveSettings();
+        }
+
+        return detected;
     }
 
     /// <summary>Remembers the folder of a freshly loaded data file so the next direct launch finds the game.</summary>
     private void RememberGameDirectory(string dataFilePath)
     {
         string? directory = Path.GetDirectoryName(dataFilePath);
-        if (string.IsNullOrEmpty(directory)
+        if (!GameLauncher.IsGameFolder(directory)
             || string.Equals(Settings.GameDirectory, directory, StringComparison.OrdinalIgnoreCase))
         {
             return;

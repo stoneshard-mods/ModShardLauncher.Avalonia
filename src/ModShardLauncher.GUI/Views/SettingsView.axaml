@@ -48,6 +48,14 @@
           <ToggleSwitch IsChecked="{Binding DirectLaunch, Mode=TwoWay}"
                         OnContent="{loc:Tr CommonOn}" OffContent="{loc:Tr CommonOff}" />
           <TextBlock Text="{Binding DirectLaunchHint}" Classes="caption" TextWrapping="Wrap" />
+
+          <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
+            <StackPanel Spacing="2">
+              <TextBlock Text="{Binding GameFolderLabel}" />
+              <TextBlock Text="{Binding GameFolder}" Classes="caption" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+            <Button Grid.Column="1" Content="{Binding BrowseLabel}" Command="{Binding PickGameFolderCommand}" />
+          </Grid>
         </StackPanel>
       </Border>
 

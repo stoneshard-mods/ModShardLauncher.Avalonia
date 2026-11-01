@@ -225,6 +225,71 @@ public class GameLauncherTests
         }
     }
 
+    /// <summary>A folder only counts as the installation when the executable is really in it.</summary>
+    [Fact]
+    public void IsGameFolder_RequiresTheExecutable()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"msl-game-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+
+        try
+        {
+            Assert.False(GameLauncher.IsGameFolder(directory));
+            Assert.False(GameLauncher.IsGameFolder(null));
+            Assert.False(GameLauncher.IsGameFolder(string.Empty));
+
+            File.WriteAllText(Path.Combine(directory, GameLauncher.GameExecutableName), string.Empty);
+
+            Assert.True(GameLauncher.IsGameFolder(directory));
+        }
+        finally
+        {
+            Directory.Delete(directory, true);
+        }
+    }
+
+    /// <summary>VDF escapes the separators, and the extra libraries live outside the Steam root.</summary>
+    [Fact]
+    public void ReadLibraryFolders_ParsesEscapedPaths()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"msl-vdf-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        string path = Path.Combine(directory, "libraryfolders.vdf");
+
+        try
+        {
+            File.WriteAllText(
+                path,
+                """
+                "libraryfolders"
+                {
+                    "0"
+                    {
+                        "path"		"C:\\Program Files (x86)\\Steam"
+                        "label"		""
+                    }
+                    "1"
+                    {
+                        "path"		"D:\\SteamLibrary"
+                        "apps"
+                        {
+                            "625960"		"160773648"
+                        }
+                    }
+                }
+                """);
+
+            string[] libraries = GameLauncher.ReadLibraryFolders(path).ToArray();
+
+            string[] expected = [@"C:\Program Files (x86)\Steam", @"D:\SteamLibrary"];
+            Assert.Equal(expected, libraries);
+        }
+        finally
+        {
+            Directory.Delete(directory, true);
+        }
+    }
+
     /// <summary>The id of another game would make Steamworks report the wrong app, so it is replaced.</summary>
     [Fact]
     public void EnsureSteamAppIdFile_RepairsAStaleValue()

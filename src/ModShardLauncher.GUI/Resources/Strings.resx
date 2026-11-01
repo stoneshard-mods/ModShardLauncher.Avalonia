@@ -115,5 +115,8 @@ Not affiliated with Ink Stains Games.</value></data>
   <data name="SettingsExport" xml:space="preserve"><value>Export manifests</value></data>
   <data name="SettingsExportHint" xml:space="preserve"><value>When enabled, opening data.win also writes item, weapon and armor CSV lists to the export folder. Off by default.</value></data>
   <data name="SettingsDirectLaunch" xml:space="preserve"><value>Direct launch</value></data>
+  <data name="SettingsGameFolder" xml:space="preserve"><value>Game folder</value></data>
+  <data name="SettingsGameFolderUnknown" xml:space="preserve"><value>not set yet</value></data>
+  <data name="SettingsBrowse" xml:space="preserve"><value>Browse…</value></data>
   <data name="SettingsDirectLaunchHint" xml:space="preserve"><value>Start Stoneshard from its own executable instead of handing it to Steam. The launcher writes steam_appid.txt into the game folder (taken from the last data.win you opened), which needs write access there; while the Steam client stays closed, achievements, rich presence and cloud sync are unavailable.</value></data>
 </root>
