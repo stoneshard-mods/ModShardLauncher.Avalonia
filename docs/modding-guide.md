@@ -21,6 +21,7 @@
 11. [验证与调试](#11-验证与调试)
 12. [附录：完整示例](#12-附录完整示例)
 13. [API 速查](#13-api-速查)
+14. [附录 B：注入音效、菜单与 GML 函数](#14-附录-b注入音效菜单与-gml-函数)
 
 ## 1. 成品长什么样
 
@@ -207,11 +208,14 @@ ModShardLauncher.CLI.exe compile --source "%LOCALAPPDATA%\ModShardLauncher\ModSo
 
 | 目录里的内容 | 处理 |
 |---|---|
-| 任意子目录、任意文件 | 打包（`bin`、`obj`、`.vs` 排除） |
+| 子目录 | 递归扫描（`bin`、`obj`、`.vs` 排除） |
 | `.cs` | 不打包；编译成程序集放进包里 |
 | `icon.png`（根目录） | 作为卡片封面，**不**进游戏图集 |
 | 其它 `.png` | 作为贴图注入游戏（见 §7.6） |
-| `.gml` / `.json` | 打进包；运行时用 `Mod.ModFiles.GetCode` / `GetFile` 读取 |
+| `.gml` / `.lua` | 原样打进包；运行时用 `Mod.ModFiles.GetCode` / `GetFile` 读取 |
+| 其它扩展名（`.json`、`.txt`、`.wav`、`.py` …） | **被丢弃**，不报错也不进包（见 §10.2 #13） |
+
+白名单按扩展名精确匹配：实测（v0.13.2.0，用一个只有几个空文件的探针工程打包）`dummy.wav`、`dummy.json`、`dummy.txt` 都不进包，而 `dummy.gml`、`sub/probe.lua`、`dummy.wav.lua` 进包，内容完全不变。所以二进制资源（音频、配置等）想进包，就在原名后面再加 `.lua`。
 
 一个 6 张 PNG 的示例包，用 `SmlPackageReader` 读出来是：
 
@@ -469,6 +473,13 @@ v0.13.2.0 之前的版本里，武器表 API 与游戏当前的 84 列结构不�
 | 10 | 用原版 MSL（net6.0）打包时报 `System.Linq, Version=10.0.0.0` 找不到，堆栈停在 `PatchMod()` | mod 源码用了 LINQ（如 `.Any(...)`），打包器按当前 .NET 10 环境引用 `System.Linq`，net6 启动器加载时找不到 | 不依赖 LINQ（改 `foreach`），并在 csproj 关闭 `ImplicitUsings`，只用 netstandard 基础 API |
 | 11 | 打补丁时报 `Assembly with same name is already loaded` | `Mods` 目录里有多个程序集名相同的 `.sml`（例如 `Map_TP.sml` 与 `Map_TP-v0.3.0.0.sml`） | 只保留一份 `.sml`，旧包改成 `.sml.bak` 或移出 `Mods` |
 | 12 | 同一个 `.sml` 在两个启动器之间表现不一致 | Avalonia 版是 net10，打的包引用 `System.Private.CoreLib 10`；原版 MSL 是 net6 | 用哪个启动器进游戏，就用哪个启动器打包 |
+| 13 | 工程里的 `.json` / `.txt` / `.wav` 打包后不在包里，运行时 `ModFiles.GetFile` 返回 `null` | 打包器只按扩展名收录 `.gml` / `.lua` / `.png`，其它扩展名**静默丢弃**（不报错、不警告） | 资源改名成以 `.lua` 结尾（音频 `x.wav.lua`、配置 `x.json.lua`，内容是原始字节），并在代码里对 `GetFile` 判空（§14.1） |
+| 14 | 换了素材 / 改了 GML，重打同一份**已打过补丁**的 `data.win`，进游戏还是旧的 | 模组自己写的幂等判断（`if (FindSound(name) != null) continue`、`if (CodeExists(name)) continue`）会跳过已存在的资源与代码 | 每次都在干净的 `original.win` 上重打；幂等判断只用来防止**同一次**补丁里重复添加 |
+| 15 | `Msl.AddFunction` 注入的函数运行时报 `_amount not set` 之类的实例变量错误 | 打包器不会把**具名参数**写进函数的 locals 表，函数体里的参数名被当成实例变量 | 参数一律写 `argument0` / `argument1`，函数体内先 `var _x = argument0;`（§14.3） |
+| 16 | 照反编译文本写的锚点找不到，或插入位置落进 `if` 与 `{` 之间 | 反编译器输出**不带分号**；`if (...)` 行后面紧跟的可能是 `{` | 锚点取分支内第一条语句，不带分号；比较前把空格/制表符/回车去掉（§14.6） |
+| 17 | 模组菜单的下拉框读回来是 `"0"` 而不是第一个选项 | `UIComponent(..., ComboBox, string[])` 的 `DefaultValue` 是 int `0`，回读走 `ini_read_string(..., "0")` | GML 里把 `"0"` 当作第一个选项；下拉值是**选项文本本身**（`global.x == "方案 B"`），不是下标（§14.5） |
+| 18 | 新增的音效播不出来，或播成别的音 | 只加了 `UndertaleSound` 没加 `UndertaleEmbeddedAudio`，或 `AudioID` / `AudioGroup` 没接上 | 两者成对添加，并设 `sound.AudioFile`、`AudioID = data.EmbeddedAudio.Count - 1`、`AudioGroup = data.AudioGroups[0]`、`GroupID = 0`（§14.2） |
+| 19 | `Msl.LoadGML("gml_Script_xxx")` 找不到代码条目 / 改完没生效 | 一个脚本文件里有多个函数时，函数是**嵌套代码条目**，不能单独加载改写 | 用父条目 `gml_GlobalScript_<脚本名>` 整段读改写 |
 
 ## 11. 验证与调试
 
@@ -632,3 +643,137 @@ s_loot_myfirstweapon_0.png   26×13
 | `Mod.ModFiles.GetFile / GetCode` | 读自己包里打进的其他文件（JSON/GML） |
 
 完整公开 API 见官方 [API 文档](https://modshardteam.github.io/ModShardLauncher/zh/guides/api.html)，以及源码 `src/ModShardLauncher.Core/Modding/`（`Msl` 的公开方法大多带中文注释）。
+
+---
+
+## 14. 附录 B：注入音效、菜单与 GML 函数
+
+§7 走的是表格和贴图；如果你的模组是另一条路——往 `data.win` 里加新的音效资源、加自己的 GML 函数、用一个控制器对象驱动、再挂一个菜单项——坑集中在**二进制资源、GML 注入、菜单读写**三块，按顺序记在下面。示例里的名字都是占位，换成自己的即可。
+
+### 14.1 资源：二进制文件叫 `*.lua`
+
+| 工程里的文件 | 进包 | 读法 |
+|---|---|---|
+| `gml/my_helper.gml` | 是 | `ModFiles.GetCode("gml/my_helper.gml")` |
+| `Data/clip1.wav.lua` | 是 | `ModFiles.GetFile("Data/clip1.wav.lua")` |
+| `Data/clip1.wav` | 否 | 被丢弃（§10.2 #13） |
+| `config.json` | 否 | 要叫 `config.json.lua` 才进包 |
+
+```csharp
+byte[] wav = ModFiles.GetFile("Data/" + name + ".wav.lua");
+if (wav == null || wav.Length < 44)
+    throw new Exception("audio chunk is missing: " + name);
+```
+
+`GetFile` 只按 **basename** 匹配：`Data/clip1.wav.lua` 与 `Other/clip1.wav.lua` 会撞车，不同目录必须用不同文件名。
+
+### 14.2 音效：`Sound` 与 `EmbeddedAudio` 成对添加
+
+```csharp
+// 模板：随便找一个已在 audiogroup_default 里的音效
+UndertaleSound template = FindSound(data, "snd_empty_file");
+byte[] wav = ModFiles.GetFile("Data/" + name + ".wav.lua");
+
+UndertaleString assetName = data.Strings.MakeString("snd_my_" + name);
+UndertaleEmbeddedAudio audio = new UndertaleEmbeddedAudio();
+audio.Name = assetName;
+audio.Data = wav;                     // 真 WAV 字节，不用再转码
+data.EmbeddedAudio.Add(audio);
+
+UndertaleSound sound = new UndertaleSound();
+sound.Name = assetName;
+sound.Flags = template.Flags;
+sound.Type = template.Type;
+sound.File = data.Strings.MakeString(assetName.Content + ".wav");
+sound.Effects = template.Effects;
+sound.Volume = template.Volume;
+sound.Pitch = template.Pitch;
+sound.Preload = true;
+sound.AudioGroup = data.AudioGroups[0];          // = audiogroup_default
+sound.AudioFile = audio;                         // 不接就静音
+sound.AudioID = data.EmbeddedAudio.Count - 1;    // 必须是“添加后”的索引
+sound.GroupID = 0;
+sound.AudioLength = 0f;                          // 交给游戏自己算
+data.Sounds.Add(sound);
+```
+
+### 14.3 GML 函数：参数只能写 `argumentN`
+
+```gml
+// gml/my_add.gml
+function my_add(argument0)
+{
+    my_init();
+
+    var _amount = floor(abs(argument0));
+    if (_amount <= 0)
+        return;
+
+    global.my_pending += _amount;
+    global.my_deadline = current_time + 1200;
+}
+```
+
+写成 `function my_add(amount)` 能编译，但运行时 `amount` 被当成实例变量读，报 `not set`（§10.2 #15）。注入用 `Msl.AddFunction(ModFiles.GetCode("gml/my_add.gml"), "my_add")`，按依赖顺序注册——被调用的函数先加。
+
+### 14.4 控制器对象：持久化 + 挂在 `START`
+
+```csharp
+UndertaleGameObject ticker = Msl.AddObject("o_my_ticker", isPersistent: true);
+Msl.AddNewEvent(ticker, "my_init()", EventType.Create, 0);
+Msl.AddNewEvent(ticker, "my_tick()", EventType.Step, 0);
+Msl.GetRoom("START").AddGameObject("Instances", ticker);
+```
+
+- 不持久化的话换房间就断；挂 `START` 才能保证每个存档都有实例。
+- 初始化函数里用 `if (variable_global_exists("my_ready")) return;` 守卫，避免回主菜单再进时重复创建 `ds_list`。
+- 判断“上一段播完没有”用**资源索引**而不是播放实例 id：`audio_is_playing(soundIndex)`；`audio_play_sound` 返回的实例播完会被回收。
+
+### 14.5 菜单：ComboBox 的默认值不是第一个选项
+
+```csharp
+Msl.AddMenu("我的设置",
+    new UIComponent("模式", "my_mode", UIComponentType.ComboBox,
+                    new[] { "方案 A", "方案 B" }));
+```
+
+- 结果写进 `global.my_mode`，值是**选项文本**（`"方案 A"` / `"方案 B"`），不是下标。
+- 菜单从未打开过时，`o_msl_initializer` 用 `ini_read_string(..., "0")` 回填，值是字符串 `"0"`。GML 侧要把它当第一个选项处理：
+
+```gml
+var _mode = "0";
+if (variable_global_exists("my_mode"))
+    _mode = global.my_mode;
+
+if (_mode == "方案 B")
+{
+    // 第二套配置
+}
+```
+
+- 持久化文件是 `msl_menu_mod.ini`（section 名 = `AddMenu` 的第一个参数），由注入的 GML 在游戏数据目录读写，不在启动器目录里。
+
+### 14.6 锚点：去分号、取语句、squash 比对
+
+不要拿 `if (...)` 行当锚点，用分支内的第一条语句（下面是示意，锚点换成你实际反编译出来的那行）：
+
+```csharp
+InsertAfter("gml_GlobalScript_scr_some_script",
+            "some_stat_update(\"income\", price)",   // 不带分号，空格也会被 squash 掉
+            "my_add(price);");
+```
+
+比对前把空格、制表符、回车全部去掉再 `Contains`，这样反编译器换排版也不失配；插入时沿用锚点行的缩进，别破坏 `{}` 结构。找不到锚点就把实际反编译文本落到 `%TEMP%`，报错里带上路径——游戏更新后照着改即可。
+
+### 14.7 素材生成（可选：TTS + ffmpeg）
+
+音效可以自己录，也可以用 TTS 批量生成（`edge-tts` + `imageio-ffmpeg` 自带的 ffmpeg）。批量生成时下面几步必须做，否则拼接处会“咔哒”、音量忽大忽小：
+
+| 处理 | 参数 | 原因 |
+|---|---|---|
+| 统一格式 | `-ar 24000 -ac 1 -c:a pcm_s16le` | 各段采样率一致才不会在拼接处重采样 |
+| 去首尾静音 | `silenceremove` + `areverse` 走两遍 | 词条首尾的静音会拉长句间停顿 |
+| 淡入淡出 | 4 ms 淡入 / 10 ms 淡出 | 消除拼接爆音 |
+| 峰值归一 | -1 dBFS，增益限 ±12 dB | 不同词条的响度差很多 |
+
+另外：音色名必须带正确的地区前缀。有的音色只有 `zh-TW-` 版本，写成 `zh-CN-` 时服务端返回**空音频**（`NoAudioReceived`），而不是“音色不存在”，很容易误判成网络问题。换音色后先单条试合成，再批量跑。
