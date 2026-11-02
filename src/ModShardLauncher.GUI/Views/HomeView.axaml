@@ -39,9 +39,34 @@
       </Grid>
 
       <Border Classes="card">
-        <StackPanel Spacing="6">
+        <StackPanel Spacing="12">
           <TextBlock Text="{loc:Tr HomeHint}" Classes="section" />
-          <TextBlock Text="{loc:Tr HomeHintBody}" Classes="caption" />
+
+          <StackPanel Spacing="9">
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+              <TextBlock Text="1" Classes="step" />
+              <TextBlock Grid.Column="1" Text="{loc:Tr HomeStep1}" Classes="step-text" />
+            </Grid>
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+              <TextBlock Text="2" Classes="step" />
+              <TextBlock Grid.Column="1" Text="{loc:Tr HomeStep2}" Classes="step-text" />
+            </Grid>
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+              <TextBlock Text="3" Classes="step" />
+              <TextBlock Grid.Column="1" Text="{loc:Tr HomeStep3}" Classes="step-text" />
+            </Grid>
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+              <TextBlock Text="4" Classes="step" />
+              <TextBlock Grid.Column="1" Text="{loc:Tr HomeStep4}" Classes="step-text" />
+            </Grid>
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+              <TextBlock Text="5" Classes="step" />
+              <TextBlock Grid.Column="1" Text="{loc:Tr HomeStep5}" Classes="step-text" />
+            </Grid>
+          </StackPanel>
+
+          <TextBlock Text="{loc:Tr HomeHintNote}" Classes="caption"
+                     Foreground="{DynamicResource Warning}" />
         </StackPanel>
       </Border>
 

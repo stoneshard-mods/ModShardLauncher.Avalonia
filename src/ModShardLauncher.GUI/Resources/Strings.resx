@@ -37,7 +37,7 @@ Not affiliated with Ink Stains Games.</value></data>
   <data name="DialogCancel" xml:space="preserve"><value>Cancel</value></data>
   <data name="NavHome" xml:space="preserve"><value>Home</value></data>
   <data name="StatusBarData" xml:space="preserve"><value>Data:</value></data>
-  <data name="HomeSubtitle" xml:space="preserve"><value>Load a vanilla data.win, enable the mods you want, then patch and save.</value></data>
+  <data name="HomeSubtitle" xml:space="preserve"><value>Rename the vanilla data.win to a backup name, load that copy, then patch and save as data.win in the game folder.</value></data>
   <data name="StatusSaved" xml:space="preserve"><value>Saved {0}</value></data>
   <data name="MenuShowMods" xml:space="preserve"><value>Mod list</value></data>
   <data name="SettingsSourcesFolder" xml:space="preserve"><value>Mod sources</value></data>
@@ -83,7 +83,12 @@ Not affiliated with Ink Stains Games.</value></data>
   <data name="MenuExit" xml:space="preserve"><value>Exit</value></data>
   <data name="StatusCompiling" xml:space="preserve"><value>Compiling mod…</value></data>
   <data name="StatusCompiled" xml:space="preserve"><value>Compiled {0}</value></data>
-  <data name="HomeHintBody" xml:space="preserve"><value>1. Open the vanilla data.win from the modbranch beta. 2. Enable the mods you want. 3. Patch and Save to a new file. 4. Select that file in Stoneshard.</value></data>
+  <data name="HomeStep1" xml:space="preserve"><value>Back up the vanilla file: rename data.win in the game folder to original.win (vanilla.win also works).</value></data>
+  <data name="HomeStep2" xml:space="preserve"><value>Open the backup: pick the renamed vanilla with Open data.win — patching only touches that copy, never the file the game runs with.</value></data>
+  <data name="HomeStep3" xml:space="preserve"><value>Enable mods: tick the mods you want on the Mods page.</value></data>
+  <data name="HomeStep4" xml:space="preserve"><value>Patch and Save: write the result into the game folder; data.win is the recommended name (any other name works too).</value></data>
+  <data name="HomeStep5" xml:space="preserve"><value>Start the game: when the patched file is named data.win, Stoneshard skips the file picker and loads it directly; with any other name, pick the patched file at launch.</value></data>
+  <data name="HomeHintNote" xml:space="preserve"><value>Keep the original: the renamed original.win / vanilla.win is the input for the next patch run, and the game never loads it on its own.</value></data>
   <data name="StatusModsCount" xml:space="preserve"><value>{0} mods</value></data>
   <data name="SourcesEmpty" xml:space="preserve"><value>No mod sources found</value></data>
   <data name="ToolbarOpen" xml:space="preserve"><value>Open data.win</value></data>
@@ -110,7 +115,7 @@ Not affiliated with Ink Stains Games.</value></data>
   <data name="MenuOpenModsFolder" xml:space="preserve"><value>Open Mods folder</value></data>
   <data name="MenuSettings" xml:space="preserve"><value>Settings</value></data>
   <data name="SettingsLanguageHint" xml:space="preserve"><value>Auto follows the Windows display language; languages without a translation fall back to English.</value></data>
-  <data name="SaveOverwriteSourceError" xml:space="preserve"><value>Choose a different output file: overwriting the loaded vanilla data.win is not allowed.</value></data>
+  <data name="SaveOverwriteSourceError" xml:space="preserve"><value>Choose a different output file: the loaded vanilla file cannot be overwritten. Rename the game's data.win to original.win first, open that copy, then save as data.win.</value></data>
   <data name="SettingsDataFolder" xml:space="preserve"><value>User data</value></data>
   <data name="SettingsExport" xml:space="preserve"><value>Export manifests</value></data>
   <data name="SettingsExportHint" xml:space="preserve"><value>When enabled, opening data.win also writes item, weapon and armor CSV lists to the export folder. Off by default.</value></data>

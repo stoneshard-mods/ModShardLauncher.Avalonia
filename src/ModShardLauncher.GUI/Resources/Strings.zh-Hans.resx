@@ -37,7 +37,7 @@ Stoneshard 社区模组工具。
   <data name="DialogCancel" xml:space="preserve"><value>取消</value></data>
   <data name="NavHome" xml:space="preserve"><value>首页</value></data>
   <data name="StatusBarData" xml:space="preserve"><value>数据：</value></data>
-  <data name="HomeSubtitle" xml:space="preserve"><value>打开原版 data.win，启用需要的模组，然后打补丁并另存。</value></data>
+  <data name="HomeSubtitle" xml:space="preserve"><value>先把原版 data.win 改名备份，再打开这份备份打补丁，最后另存为游戏目录里的 data.win。</value></data>
   <data name="StatusSaved" xml:space="preserve"><value>已保存 {0}</value></data>
   <data name="MenuShowMods" xml:space="preserve"><value>模组列表</value></data>
   <data name="SettingsSourcesFolder" xml:space="preserve"><value>模组源码</value></data>
@@ -83,7 +83,12 @@ Stoneshard 社区模组工具。
   <data name="MenuExit" xml:space="preserve"><value>退出</value></data>
   <data name="StatusCompiling" xml:space="preserve"><value>正在编译模组…</value></data>
   <data name="StatusCompiled" xml:space="preserve"><value>已编译 {0}</value></data>
-  <data name="HomeHintBody" xml:space="preserve"><value>1. 打开 modbranch 测试分支的原版 data.win。2. 勾选需要的模组。3. 打补丁并另存为新文件。4. 在 StoneShard 中选择该文件。</value></data>
+  <data name="HomeStep1" xml:space="preserve"><value>备份原版：把游戏目录里的 data.win 改名为 original.win（也可以叫 vanilla.win）。</value></data>
+  <data name="HomeStep2" xml:space="preserve"><value>打开备份：用「打开 data.win」选中改名后的原版文件——补丁只改这份副本，不动游戏正在用的文件。</value></data>
+  <data name="HomeStep3" xml:space="preserve"><value>启用模组：在「模组」页勾选需要的模组。</value></data>
+  <data name="HomeStep4" xml:space="preserve"><value>打补丁并保存：输出到游戏目录，文件名建议用 data.win（换成别的名字也能用）。</value></data>
+  <data name="HomeStep5" xml:space="preserve"><value>启动游戏：补丁文件叫 data.win 时，游戏会跳过选择流程直接加载它；换成别的名字时，在启动时选择这个已经打好补丁的文件。</value></data>
+  <data name="HomeHintNote" xml:space="preserve"><value>原版别丢：改名后的 original.win / vanilla.win 是下次打补丁的输入，游戏不会自动加载它。</value></data>
   <data name="StatusModsCount" xml:space="preserve"><value>{0} 个模组</value></data>
   <data name="SourcesEmpty" xml:space="preserve"><value>未找到模组源码</value></data>
   <data name="ToolbarOpen" xml:space="preserve"><value>打开 data.win</value></data>
@@ -110,7 +115,7 @@ Stoneshard 社区模组工具。
   <data name="MenuOpenModsFolder" xml:space="preserve"><value>打开模组文件夹</value></data>
   <data name="MenuSettings" xml:space="preserve"><value>设置</value></data>
   <data name="SettingsLanguageHint" xml:space="preserve"><value>自动跟随 Windows 显示语言；没有对应本地化时回退到英文。</value></data>
-  <data name="SaveOverwriteSourceError" xml:space="preserve"><value>请选择其他输出文件：不允许覆盖已加载的原版 data.win。</value></data>
+  <data name="SaveOverwriteSourceError" xml:space="preserve"><value>请选择其他输出文件：不能覆盖当前加载的原版文件。可先把游戏目录的 data.win 改名为 original.win，打开这个副本后再另存为 data.win。</value></data>
   <data name="SettingsDataFolder" xml:space="preserve"><value>用户数据</value></data>
   <data name="SettingsExport" xml:space="preserve"><value>导出清单</value></data>
   <data name="SettingsExportHint" xml:space="preserve"><value>开启后，每次打开 data.win 会在 export 文件夹生成物品、武器、护甲 CSV 清单；默认关闭。</value></data>

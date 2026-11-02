@@ -12,6 +12,9 @@ public sealed class DialogService
     /// <summary>Default Steam installation folder for Stoneshard, used as the picker's start location.</summary>
     private const string StoneshardSteamFolder = @"C:\Program Files (x86)\Steam\steamapps\common\Stoneshard";
 
+    /// <summary>The one data file name Stoneshard loads on its own.</summary>
+    private const string GameDataFileName = "data.win";
+
     private Window? _owner;
 
     public void Attach(Window owner) => _owner = owner;
@@ -64,8 +67,10 @@ public sealed class DialogService
     }
 
     /// <summary>
-    /// Asks where to write the patched file. The suggestion never reuses the source file name,
-    /// so pressing Enter by accident cannot overwrite the vanilla data.win.
+    /// Asks where to write the patched file. When the loaded source is a renamed copy of the
+    /// vanilla data (for example <c>original.win</c>) the suggestion is <c>data.win</c>, because
+    /// Stoneshard loads <c>data.win</c> from its own folder by default. The suggestion never
+    /// reuses the source file name, so pressing Enter by accident cannot overwrite the vanilla.
     /// </summary>
     public async Task<string?> PickSaveDataFileAsync(string? sourceFilePath)
     {
@@ -84,10 +89,12 @@ public sealed class DialogService
                 startLocation = await _owner.StorageProvider.TryGetFolderFromPathAsync(directory);
             }
 
-            string name = Path.GetFileNameWithoutExtension(sourceFilePath);
-            if (!string.IsNullOrWhiteSpace(name))
+            string fileName = Path.GetFileName(sourceFilePath);
+            if (!string.IsNullOrWhiteSpace(fileName))
             {
-                suggestedName = name + "_patched.win";
+                suggestedName = string.Equals(fileName, GameDataFileName, StringComparison.OrdinalIgnoreCase)
+                    ? "data_patched.win"
+                    : GameDataFileName;
             }
         }
 

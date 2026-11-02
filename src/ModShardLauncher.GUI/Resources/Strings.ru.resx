@@ -37,7 +37,7 @@ UndertaleModTool {1}
   <data name="DialogCancel" xml:space="preserve"><value>Отмена</value></data>
   <data name="NavHome" xml:space="preserve"><value>Главная</value></data>
   <data name="StatusBarData" xml:space="preserve"><value>Данные:</value></data>
-  <data name="HomeSubtitle" xml:space="preserve"><value>Загрузите оригинальный data.win, включите моды, затем пропатчите и сохраните.</value></data>
+  <data name="HomeSubtitle" xml:space="preserve"><value>Переименуйте оригинальный data.win в резервную копию, откройте её, затем пропатчите и сохраните как data.win в папке игры.</value></data>
   <data name="StatusSaved" xml:space="preserve"><value>Сохранено {0}</value></data>
   <data name="MenuShowMods" xml:space="preserve"><value>Список модов</value></data>
   <data name="SettingsSourcesFolder" xml:space="preserve"><value>Исходники</value></data>
@@ -83,7 +83,12 @@ UndertaleModTool {1}
   <data name="MenuExit" xml:space="preserve"><value>Выход</value></data>
   <data name="StatusCompiling" xml:space="preserve"><value>Компиляция…</value></data>
   <data name="StatusCompiled" xml:space="preserve"><value>Скомпилировано {0}</value></data>
-  <data name="HomeHintBody" xml:space="preserve"><value>1. Откройте оригинальный data.win из ветки modbranch. 2. Включите нужные моды. 3. Пропатчите и сохраните в новый файл. 4. Выберите этот файл в Stoneshard.</value></data>
+  <data name="HomeStep1" xml:space="preserve"><value>Сохраните оригинал: переименуйте data.win в папке игры в original.win (подойдёт также vanilla.win).</value></data>
+  <data name="HomeStep2" xml:space="preserve"><value>Откройте копию: выберите переименованный файл через «Открыть data.win» — патч меняет только копию, файл, с которым работает игра, остаётся нетронутым.</value></data>
+  <data name="HomeStep3" xml:space="preserve"><value>Включите моды: отметьте нужные на странице «Моды».</value></data>
+  <data name="HomeStep4" xml:space="preserve"><value>Патч и сохранить: запишите результат в папку игры; рекомендуемое имя — data.win (подойдёт и любое другое).</value></data>
+  <data name="HomeStep5" xml:space="preserve"><value>Запустите игру: если пропатченный файл называется data.win, StoneShard пропускает выбор файла и загружает его сразу; при другом имени выберите пропатченный файл при запуске.</value></data>
+  <data name="HomeHintNote" xml:space="preserve"><value>Не теряйте оригинал: переименованный original.win / vanilla.win — это входные данные для следующего патча, игра сама его не загружает.</value></data>
   <data name="StatusModsCount" xml:space="preserve"><value>{0} модов</value></data>
   <data name="SourcesEmpty" xml:space="preserve"><value>Исходники не найдены</value></data>
   <data name="ToolbarOpen" xml:space="preserve"><value>Открыть data.win</value></data>
@@ -110,7 +115,7 @@ UndertaleModTool {1}
   <data name="MenuOpenModsFolder" xml:space="preserve"><value>Открыть папку модов</value></data>
   <data name="MenuSettings" xml:space="preserve"><value>Настройки</value></data>
   <data name="SettingsLanguageHint" xml:space="preserve"><value>Авто использует язык Windows; при отсутствии перевода используется английский.</value></data>
-  <data name="SaveOverwriteSourceError" xml:space="preserve"><value>Выберите другой файл: перезапись загруженного исходного data.win запрещена.</value></data>
+  <data name="SaveOverwriteSourceError" xml:space="preserve"><value>Выберите другой файл: перезапись загруженного оригинала запрещена. Сначала переименуйте data.win в папке игры в original.win, откройте копию и сохраните результат как data.win.</value></data>
   <data name="SettingsDataFolder" xml:space="preserve"><value>Данные пользователя</value></data>
   <data name="SettingsExport" xml:space="preserve"><value>Экспорт списков</value></data>
   <data name="SettingsExportHint" xml:space="preserve"><value>Если включено, при открытии data.win создаются CSV-списки предметов, оружия и брони в папке export. По умолчанию выключено.</value></data>
