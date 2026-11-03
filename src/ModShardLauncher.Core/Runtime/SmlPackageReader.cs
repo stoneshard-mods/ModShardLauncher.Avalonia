@@ -37,15 +37,37 @@ public static class SmlPackageReader
         const byte zero = 0x30;
         const byte nine = 0x39;
 
-        // The version string is at most 24 bytes, terminated by the first byte that is
-        // neither a dot nor a digit.
+        // The version string is at most 24 bytes and, unlike every other string in the
+        // container, it has no terminator: it is simply followed by the first chunk table.
+        // Stopping at the first non digit/dot byte is therefore not enough — a chunk count
+        // whose leading byte is an ASCII digit (48..57 entries) is swallowed by the version.
+        // Collect every plausible length instead, then keep the longest one whose chunk
+        // table actually parses.
         byte[] versionPeek = ReadBytes(stream, 24);
-        int versionLength = 24;
-        for (int i = 1; i < 24; i++)
+        List<int> versionCandidates = new();
+        for (int len = 1; len <= 24; len++)
         {
-            if (versionPeek[i] != dot && (versionPeek[i] > nine || versionPeek[i] < zero))
+            byte b = versionPeek[len - 1];
+            bool acceptable = len == 1 || b == dot || (b >= zero && b <= nine);
+            if (!acceptable)
             {
-                versionLength = i;
+                break;
+            }
+
+            if (b != dot)
+            {
+                versionCandidates.Add(len);
+            }
+        }
+
+        int versionLength = 24;
+        for (int i = versionCandidates.Count - 1; i >= 0; i--)
+        {
+            int candidate = versionCandidates[i];
+            stream.Seek(4 + candidate, SeekOrigin.Begin);
+            if (LooksLikeChunkTable(stream))
+            {
+                versionLength = candidate;
                 break;
             }
         }
@@ -55,7 +77,7 @@ public static class SmlPackageReader
             Log.Warning("Version number seems ill formed");
         }
 
-        stream.Seek(-24, SeekOrigin.Current);
+        stream.Seek(4, SeekOrigin.Begin);
         byte[] versionBytes = ReadBytes(stream, versionLength);
 
         file.Version = versionDigits.Replace(Encoding.UTF8.GetString(versionBytes), "$1");
@@ -129,6 +151,45 @@ public static class SmlPackageReader
         }
 
         return null;
+    }
+
+    /// <summary>Cheap sanity check used to tell the version length apart from the chunk table.</summary>
+    private static bool LooksLikeChunkTable(FileStream stream)
+    {
+        try
+        {
+            long start = stream.Position;
+            int count = ReadInt32(stream, "chunk count");
+            bool looksValid = count >= 0 && count <= MaxChunksPerTable;
+
+            if (looksValid && count > 0)
+            {
+                int nameLength = ReadInt32(stream, "chunk name length");
+                if (nameLength <= 0 || nameLength > MaxChunkNameLength)
+                {
+                    looksValid = false;
+                }
+                else
+                {
+                    byte[] name = ReadBytes(stream, nameLength);
+                    foreach (byte b in name)
+                    {
+                        if (b < 0x20 || b > 0x7E)
+                        {
+                            looksValid = false;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            stream.Seek(start, SeekOrigin.Begin);
+            return looksValid;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
     }
 
     private static void ReadChunkTable(FileStream stream, ModFile file)

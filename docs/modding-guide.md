@@ -22,6 +22,8 @@
 12. [附录：完整示例](#12-附录完整示例)
 13. [API 速查](#13-api-速查)
 14. [附录 B：注入音效、菜单与 GML 函数](#14-附录-b注入音效菜单与-gml-函数)
+15. [附录 C：新增可选角色](#15-附录-c新增可选角色)
+16. [附录 D：技能、状态与技能树](#16-附录-d技能状态与技能树)
 
 ## 1. 成品长什么样
 
@@ -62,6 +64,35 @@
 - GUI：设置页「文件夹」里可以直接打开这些目录；
 - CLI：`--data-dir <目录>` 可以换一套互不干扰的模组/数据目录；
 - `data.win` 不在这里：它是任意位置的原版数据文件，用「打开」对话框选择。
+
+### 3.1 打补丁的输出约定（快速迭代用）
+
+改 mod 之后是「编译 → 打补丁 → 进游戏」的循环，所以约定死两条：
+
+| 约定 | 原因 |
+|---|---|
+| **输入永远是 `original.win`**（干净原版） | 拿已经打过的 `data.win` 当输入会叠加补丁，出错（§10.2 #14） |
+| **输出默认直接覆盖游戏目录的 `data.win`** | 省掉改名、复制、重新选文件，打完直接启动游戏 |
+
+也就是说：`original.win` 是"源"，`data.win` 是"产物"，每次重打都从源重新生成产物覆盖旧的——**不要手工备份产物，要备份就备份源**。
+
+```powershell
+$game = "C:\Program Files (x86)\Steam\steamapps\common\Stoneshard"
+$cli  = "...\ModShardLauncher.CLI.exe"
+$src  = "$env:LOCALAPPDATA\ModShardLauncher\ModSources\<工程名>"
+
+# 1) 备份原版（只需一次；之后 original.win 就是唯一的"源"）
+Copy-Item "$game\data.win" "$game\original.win" -Force
+
+# 2) 每次改完 mod：编译 + 打补丁 → 直接覆盖 data.win
+& $cli compile --source $src
+& $cli patch --data "$game\original.win" --output "$game\data.win" --enable <ModName>
+```
+
+> `--data` 与 `--output` 不能是同一个文件。
+> 想连同其它已装 mod 一起打，把 `--enable <ModName>` 换成 `--all`（`Mods` 目录里除 `*.bak` 外的全部启用）。
+> 游戏更新或 Steam 校验把 `data.win` 还原后，重跑一次 `patch` 即可，`original.win` 不受影响。
+> 单个工程里可以把上面三行写成 `rebuild.ps1`，双击/单命令跑完整个循环。
 
 ## 4. 创建工程
 
@@ -480,14 +511,67 @@ v0.13.2.0 之前的版本里，武器表 API 与游戏当前的 84 列结构不�
 | 17 | 模组菜单的下拉框读回来是 `"0"` 而不是第一个选项 | `UIComponent(..., ComboBox, string[])` 的 `DefaultValue` 是 int `0`，回读走 `ini_read_string(..., "0")` | GML 里把 `"0"` 当作第一个选项；下拉值是**选项文本本身**（`global.x == "方案 B"`），不是下标（§14.5） |
 | 18 | 新增的音效播不出来，或播成别的音 | 只加了 `UndertaleSound` 没加 `UndertaleEmbeddedAudio`，或 `AudioID` / `AudioGroup` 没接上 | 两者成对添加，并设 `sound.AudioFile`、`AudioID = data.EmbeddedAudio.Count - 1`、`AudioGroup = data.AudioGroups[0]`、`GroupID = 0`（§14.2） |
 | 19 | `Msl.LoadGML("gml_Script_xxx")` 找不到代码条目 / 改完没生效 | 一个脚本文件里有多个函数时，函数是**嵌套代码条目**，不能单独加载改写 | 用父条目 `gml_GlobalScript_<脚本名>` 整段读改写 |
+| 20 | 进游戏报 `Unable to find function xxx`，堆栈指到事件里的一行调用 | `Msl.AddFunction` 只新增代码条目、**不注册函数名**；跨条目调用时运行期查不到（§14.3 有实测堆栈） | 注入代码一律内联，不新增函数；状态用 `global.xxx` 传 |
+| 21 | 注入的 GML 报 `Variable o_xxx.yyy(...) not set before reading it` | 代码比资产先编译：`o_xxx` 当时还不在资产表里，GML 编译器把未知资产名编译成了**实例变量读取**（不报编译错） | 先 `Msl.AddObject` / 贴图注入，再编译引用它们的代码；或在 GML 里用 `asset_get_index("o_xxx")` 查 |
+| 22 | 打补丁报 `Expected assignment operator around line N`；改成 `with (obj) method(...)` 后能编译，但进游戏报 `Unable to find function method` | MSL 的 GML 编译器**不支持 `obj.method(...)`**；而 `with (obj) method(...)` 是按**全局函数名**查找，struct 的 static 方法根本没注册成全局函数 | 直接给成员赋值（`obj.pointsArray = [...]`），或 `var _f = obj.method; _f(...)`；别用 `with`（§16.3） |
+| 23 | 进游戏前加载包就抛 `InvalidDataException: invalid chunk count ...` | `.sml` 的版本串没有终止符，读取器靠"遇到非数字就停"判断长度；**纹理块数量落在 48–57** 时首字节正好是 ASCII 数字，被吞进版本号（v0.13.2.0 已修） | 用新版 CLI/GUI；或把纹理数量调开这个区间 |
+| 24 | 自定义文本全部不生效：界面显示 `className[...]` / `classDescription[...]` / `name[xxx]` | `scr_tableWriteMap` **会先清空目标 map 再填充**，注入插在它的调用之前就会被抹掉 | 注入点放在**这张 map 自己的** `scr_tableWriteMap` 之后（§16.5） |
+| 25 | 想 hook 伤害函数，报 `GML Compile Error: Errors parsing code` | 部分原版函数的反编译文本**无法回编译**（`scr_damage_calculation` / `scr_skill_damage` / `scr_physical_damage`） | 换用能回编译的入口：`scr_attack_result_hit` / `scr_simple_damage` / `scr_damage` / `scr_cast_spell`（§16.4） |
+| 26 | `.ps1` 里带中文，`powershell -File` 报 `Missing closing '}'` | Windows PowerShell 5.1 默认按 **ANSI** 读脚本，UTF-8 无 BOM 的中文被打断 | 脚本写成纯 ASCII；或存成带 BOM 的 UTF-8 |
+| 27 | `--enable <名字>` 报 `Mod xxx not found` | 启用的名字是包里的 `Mod.Name`；**没有 `icon.png` 时**回退成文件名（含 `-vX.Y.Z.0`） | 先 `list` 看真实名字；给工程补 `icon.png` |
+| 28 | 技能树节点一直红字「需要阅读相应文献才能解锁」 | 解锁调用早于格子实例创建：分支基类用 `Alarm_0` 延后 2 帧建实例，此时 `with (_obj)` 是空操作；另外分支本身也要先「开启」 | 分支 Create 里 `alarm[3] = 10`，`Alarm_3` 里先 `scr_tier_open("分支text")` 再 `scr_skill_open_from_array1d(tier)`（§16.3） |
+| 29 | 被动技能提示框里描述位显示成 `0` | `scr_skill_atr` 对**被动**只用 `argument0` 当文本键（`name = skill_name_text[arg0]`、`desc = skill_desc[arg0]`），传 `0` 就查不到 | 被动必须传技能名字符串：`scr_skill_atr("Ash_Edge")`；主动才传数字（那个参数对主动没意义） |
 
 ## 11. 验证与调试
 
 ### 11.1 日志
 
-- GUI：底部固定高度的日志面板（补丁过程实时刷新），文件在 `%LOCALAPPDATA%\ModShardLauncher\logs`;
+日志分两个阶段，位置完全不同，**别在错的地方找**。
+
+**构建期（打补丁阶段）**
+
+- GUI：底部固定高度的日志面板（补丁过程实时刷新），文件在 `%LOCALAPPDATA%\ModShardLauncher\logs`；
 - CLI：控制台 + `logs\cli_*.log`；
-- 打补丁会给游戏注入日志对象（`o_msl_log` / `scr_msl_log`），GML 模组可以在游戏里调用它，日志写到游戏目录的 `Logs\msl_log_*.txt`。
+- 这一阶段能看到的报错：包解析失败、锚点找不到、`GML Compile Error`、贴图注入失败。
+
+**运行期（进游戏之后）**
+
+游戏是**沙盒运行**的，模组写文件只会落在：
+
+```text
+C:\Users\<用户名>\AppData\Local\StoneShard\
+```
+
+所以：
+
+- `show_debug_message` / `show_message` **不会**产生你能打开的日志文件。别去游戏安装目录、也别去 `%LOCALAPPDATA%\ModShardLauncher\logs` 找运行时输出——那里没有；
+- 打补丁注入的 `o_msl_log` / `scr_msl_log` 同样受沙盒约束，实际落地在沙盒目录（旧版文档写的"游戏目录 `Logs\`"在 `Program Files` 下通常写不进去）；
+- 需要临时诊断时，用 GML 的文件函数按**相对路径**写一个 txt，这也是社区模组的通行做法（沙盒目录里常见的 `qb_diag.txt`、`maptp_diag.txt` 就是这么来的）：
+
+```gml
+// 相对路径 → %LOCALAPPDATA%\StoneShard\my_diag.txt
+var _f = file_text_open_write("my_diag.txt");
+file_text_write_string(_f, "skill=" + string(array_length(skill))
+    + " points=" + string(connectionsRender.pointsArrayLength)
+    + " lines=" + string(connectionsRender.linesArrayLength));
+file_text_close(_f);
+```
+
+要点：
+
+| 注意 | 说明 |
+|---|---|
+| 用**相对路径** | 拼绝对路径会被沙盒拦掉或被重定向，写不进去 |
+| 必须 `file_text_close` | 不关文件内容可能没落盘，打开看到的是空文件 |
+| `open_write` 每次覆盖 | 适合"记录最后一次状态"；要累计历史用 `file_text_open_append` |
+| 诊断代码是临时的 | 定案后删掉，别把 `*_diag.txt` 的写入逻辑留在正式版里 |
+| 位置选对 | 想验证"某个事件到底有没有执行"，就把写文件放在 `Alarm_N` / `Other_N` 的第一行——这比推断可靠得多 |
+
+如果只需要"当场看一眼"，也可以借用游戏自己的消息栏（左下角滚动文字）：
+
+```gml
+scr_actionsLogAddMessage("skill=" + string(array_length(skill)));
+```
 
 ### 11.2 排查顺序
 
@@ -637,7 +721,8 @@ s_loot_myfirstweapon_0.png   26×13
 | `Msl.InjectTableItemLocalization(...)` | 物品名称/描述（`table_items`） |
 | `Msl.InjectTableWeapons(...)` | 便捷新增武器：只写武器表，`Subtype` 按 `Slot` 猜（§7.2 有更精确的写法） |
 | `Msl.AddLootTable(...)` / `Msl.AddReferenceTable(...)` | 掉落表、引用表（让新武器能刷出来） |
-| `Msl.LoadGML(codeName)` / `Msl.AddNewEvent(...)` | 改/加 GML 代码与事件 |
+| `Msl.LoadGML(codeName)` / `Msl.AddNewEvent(...)` | 改/加 GML 代码与事件（`AddNewEvent` 传代码正文，不是函数名） |
+| `Msl.AddFunction(code, name)` | ⚠ 只新增代码条目、不注册函数名：跨条目调用会 `Unable to find function`，见 §14.3 |
 | `ModInterfaceEngine` / `Msl.HookFunction(...)` | 脚本控制台已移除；类型仅作兼容占位，`HookFunction` 调用会抛 `NotSupportedException` |
 | `Msl.AddMenu(...)` / `Msl.AddCreditDisclaimerRoom(...)` | 模组菜单、署名房间 |
 | `Mod.ModFiles.GetFile / GetCode` | 读自己包里打进的其他文件（JSON/GML） |
@@ -714,14 +799,51 @@ function my_add(argument0)
 }
 ```
 
-写成 `function my_add(amount)` 能编译，但运行时 `amount` 被当成实例变量读，报 `not set`（§10.2 #15）。注入用 `Msl.AddFunction(ModFiles.GetCode("gml/my_add.gml"), "my_add")`，按依赖顺序注册——被调用的函数先加。
+写成 `function my_add(amount)` 能编译，但运行时 `amount` 被当成实例变量读，报 `not set`（§10.2 #15）。
+
+**但 `Msl.AddFunction` 不能用来做“跨条目调用”**（v0.13.2.0 实测）。它的实现只是新建一个代码条目：
+
+```csharp
+// CodeInjection.cs
+public static UndertaleCode AddFunction(string codeAsString, string name)
+{
+    UndertaleCode scriptCode = AddCode(codeAsString, name);   // 只是 Data.Code.Add
+    MslContext.Data.Code.Add(MslContext.Data.Code[0]);        // 再把它挪到最前面
+    MslContext.Data.Code.RemoveAt(0);
+    return scriptCode;
+}
+```
+
+它**不注册函数名**。游戏运行期按名字查 `Data.Functions`（原版每个脚本都成对存在 `gml_GlobalScript_xxx` + `gml_Script_xxx`），我们新增的名字不在里面，所以从**别的代码条目**（新对象的事件、被 `ReplaceBy` 改写的原版事件、`InsertBelow` 插进去的语句）调用它，进游戏就炸：
+
+```text
+ERROR in action number 1 of Create Event for object <undefined>:
+Error on load
+Unable to find function scr_caligo_set_form
+```
+
+也就是说上面这段 `my_add()` 里的 `my_init()` 调用、以及 §14.4 那种 `Msl.AddNewEvent(ticker, "my_init()", ...)` 的写法，只要 `my_init` 是 `AddFunction` 加的，运行期都找不到。
+
+**结论：注入代码一律内联，不新增函数。** 三条替代路线：
+
+| 想做的事 | 做法 |
+|---|---|
+| 多处复用同一段逻辑 | 直接复制代码块（十几行以内足够），别抽函数 |
+| 跨代码条目传状态 | 用 `global.xxx`（配 `variable_global_exists` 判空），别用函数返回值 |
+| 一定要一个“函数” | 把逻辑写进**某个对象的事件**，别处用 `instance_create` / 事件调用触发 |
+
+> 未验证方向：手工在 `Data.Functions` 里补一条和 `gml_GlobalScript_xxx` 配对的 `gml_Script_xxx` 记录，或许能让 `AddFunction` 真正可用——但这属于绕开公开 API 改数据结构，本指南不给结论。
 
 ### 14.4 控制器对象：持久化 + 挂在 `START`
 
 ```csharp
 UndertaleGameObject ticker = Msl.AddObject("o_my_ticker", isPersistent: true);
-Msl.AddNewEvent(ticker, "my_init()", EventType.Create, 0);
-Msl.AddNewEvent(ticker, "my_tick()", EventType.Step, 0);
+
+// 传进去的必须是「事件本身的完整代码」，不能是对自定义函数的调用：
+// AddFunction 加的函数据运行期查不到（§14.3，实测报 Unable to find function）
+Msl.AddNewEvent(ticker, ModFiles.GetCode("gml/my_ticker_Create.gml"), EventType.Create, 0);
+Msl.AddNewEvent(ticker, ModFiles.GetCode("gml/my_ticker_Step.gml"), EventType.Step, 0);
+
 Msl.GetRoom("START").AddGameObject("Instances", ticker);
 ```
 
@@ -777,3 +899,740 @@ InsertAfter("gml_GlobalScript_scr_some_script",
 | 峰值归一 | -1 dBFS，增益限 ±12 dB | 不同词条的响度差很多 |
 
 另外：音色名必须带正确的地区前缀。有的音色只有 `zh-TW-` 版本，写成 `zh-CN-` 时服务端返回**空音频**（`NoAudioReceived`），而不是“音色不存在”，很容易误判成网络问题。换音色后先单条试合成，再批量跑。
+
+---
+
+## 15. 附录 C：新增可选角色
+
+§7 做武器、§14 做音效与菜单；这一条是第三条路——**往选人界面加一个新角色**。
+
+结论：不需要改引擎，也不需要外部工具，**一个角色 = 一个继承 `o_player` 的空壳对象 + 一条 `classesMap` 注册记录 + 几条文本 + 几张精灵**，全部能靠 MSL 现有 API 做完。
+
+前置条件：**玩家必须先通关序章**（`account.ini` 里 `Prologue/isComplete=true`）。没通关时点「新游戏」会直接进序章（固定用 `o_verren`），根本走不到选人界面——这是游戏流程，不是 mod 的问题。
+
+> **验证状态**：完整链路已在启动器 v0.13.2.0 + 游戏 `original.win` 上跑通并**实机确认**——编译 → 打补丁 → 读回 `data.win` 校验对象/精灵/GML → 进游戏选卡、开局、存档读档。逐项结果见 [§15.10](#1510-验证)。下面写的尺寸、原点、锚点、属性写入时机都是实测值，不是推测。
+
+### 15.1 角色在数据里是什么
+
+选人界面不认识“角色”，它只认识 `global.classesMap` 这个 ds_map。每个角色一条记录，由 `gml_GlobalScript_scr_classCreate` 写入：
+
+```gml
+scr_classCreate(
+    arg0  object  ,   // 角色对象（必须继承 o_player）
+    arg1  sprite  ,   // 卡片头像，37×50
+    arg2  nameKey ,   // "Jorgrim" —— 名字表的键，也是存档里记的键
+    arg3  sexKey  ,   // "Male" / "Female"
+    arg4  raceKey ,   // "Human" / "Dwarf" / "Elf"
+    arg5  countryKey, // "Aldor" / "Skadia" / "Fjall" / "Jacinth" / "Yohara" / "Nistra"
+    arg6  classKey,   // 职业名表的键，如 "Reaver"
+    arg7  STR, arg8 AGL, arg9 PRC, arg10 Vitality, arg11 WIL,
+    arg12 tiersArray, // 开局开放的技能树，如 [global.swords_tier1, global.combat_tier1]
+    arg13 perksArray, // 开局 perk 对象列表，可传 []
+    arg14 dlc = -4,   // -4 = 不属于任何 DLC
+    arg15 dlcRequired = false
+);
+```
+
+内部会往 `orderArray` 追加对象名，并把上面这些键写进 `classesMap[对象名]`。**这张表就是角色系统的全部数据结构**。
+
+### 15.2 原版 9 个角色注册在哪
+
+在 `gml_Object_o_dataLoader_Other_10` 里，紧跟 `global.classesMap = __dsDebuggerMapCreate();` 之后连着 9 行 `scr_classCreate(...)`：
+
+```gml
+scr_classCreate(6978, 6772, "Verren", "Male", "Human", "Aldor", "RelicSeeker", 10, 10, 10, 10, 10, [...], [6733]);
+scr_classCreate(6982, 6782, "Velmir", "Male", "Human", "Skadia", "Revenger", 11, 11, 11, 10, 10, [...], [6734]);
+scr_classCreate(6979, 6779, "Jorgrim", "Male", "Dwarf", "Fjall", "Reaver", 11, 10, 11, 11, 10, [...], [6729]);
+...
+```
+
+（前两个参数在这里是对象/精灵**索引**，因为反编译把资产名丢了；我们注入时写 `asset_get_index("名字")` 更安全。）
+
+注意 `o_verren` 虽然注册了，但卡片列表里被显式跳过——他是序章专用：
+
+```gml
+if (_objectKey == "o_verren")
+    continue;
+```
+
+### 15.3 卡片不用改 UI，自动出现
+
+`gml_Object_o_charSelection_Create_0` 直接遍历 `orderArray` 建卡，长度还 **+1**（末尾那张禁用的“自定义”占位卡）：
+
+```gml
+var _orderArray = ds_map_find_value(global.classesMap, "orderArray");
+var _orderArrayLength = array_length(_orderArray) + 1;
+for (var _i = 0; _i < _orderArrayLength; _i++)
+{
+    ...
+    _objectKey = _orderArray[_i];
+```
+
+所以**只要注册成功，界面就自动多一张卡**，位置在原版角色之后、占位卡之前（已实机验证）。点卡时执行的是：
+
+```gml
+global.player_class = classObject;   // gml_Object_o_charSelectionCard_Other_10
+```
+
+### 15.4 角色对象本体：一个只有 Create 事件的空壳
+
+原版 5 个角色对象（`o_reaver` / `o_revenger` / `o_knight_maiden` / `o_runaway_wizzard` / `o_woodward`）**全部只有 1 个 Create 事件**（`o_knight_maiden` 多一个 PreCreate）。实测对象属性：
+
+| 属性 | 值 |
+|---|---|
+| sprite | `s_char_select`（38×40 占位图） |
+| parent | `o_player` |
+| visible / awake | `true` |
+| persistent | `false` |
+| depth | `0` |
+
+Create 事件里只做三件事：设外观精灵、发初始装备、首次进游戏时发钱和杂物。以 Jorgrim 为例：
+
+```gml
+event_inherited();
+
+with (o_inventory)
+{
+    if (!is_start_equipment)
+    {
+        scr_atr_set_simple("Head", "s_JogrimHead");
+        scr_atr_set_simple("CorpseSprite", sprite_get_name(s_Jorgrim_dead));
+        scr_atr_set_simple("BodySprite", sprite_get_name(s_dwarf_male));
+        scr_playerSpriteInit();
+
+        if (!global.is_load_game)
+        {
+            with (scr_equip("Worn Cloak", 1))
+                scr_inv_atr_set("Duration", 100);
+            ...
+            with (scr_inventory_add_item(4774))
+                scr_container_add_gold(300);
+        }
+        else
+        {
+            scr_load_player();
+        }
+
+        with (other.id)
+            alarm[11] = 3;
+    }
+
+    is_start_equipment = true;
+}
+```
+
+写自己的版本时照抄结构即可，要点：
+
+- `event_inherited()` 必须是第一句，否则父对象 `o_player` 的 40 个事件初始化全丢；
+- 三个精灵变量（`Head` / `CorpseSprite` / `BodySprite`）**必须在 `scr_playerSpriteInit()` 之前设**，这个函数就是靠它们拼精灵的；
+- `!global.is_load_game` 分支发初始装备，`else` 分支必须调 `scr_load_player()`（读档时恢复），两个分支都不能漏；
+- 原版代码里的 `UnknownEnum.Value_1` 是反编译把枚举名丢了，本意就是 `1`（栏位参数），直接写 `1` 就行；
+- `scr_inventory_add_item(4774)` 这类数字是物品/对象索引，**别照抄**，用 UTMT 查名字后换成自己的。
+
+### 15.5 属性不要自己写
+
+角色的 STR / AGL / PRC / Vitality / WIL **不是**角色对象设的，而是玩家实例真正创建那一刻由 `scr_classInit("parameters")` 从 `classesMap` 读出来写进存档的：
+
+```gml
+if (sprite_index == s_MainCharacterStandup)
+{
+    scr_classInit("parameters");
+    instance_create_depth(x - 26, y, 0, global.player_class);
+```
+
+所以只要注册时五维填对就行，不要在 Create 事件里手动 `scr_atr_set_simple("STR", ...)`，否则读档时会被覆盖、表现不一致。实机验证：注册 11/10/10/11/10，进游戏角色面板显示的正是这一组 —— 说明五维确实走这条路，而不是角色对象自己设的。
+
+### 15.6 文本：改 loader，不改那张巨大的表
+
+名字/职业名/描述来自 `table_text`（45 万字符的单行数组），直接改它代价太大。它在 `gml_Object_o_textLoader_Other_25` 里被拆成几个 map：
+
+```gml
+scr_tableWriteMap(global.char_name, _array, "char_name");
+scr_tableWriteMap(global.class_name, _array, "class_name");
+scr_tableWriteMap(global.race_name, _array, "race_name");
+scr_tableWriteMap(global.country_name, _array, "country_name");
+scr_tableWriteMap(global.char_desc, _array, "char_desc");
+```
+
+**在这几句后面补 `ds_map_set` 就行**。注意 `scr_tableWriteMap` 只取当前语言那一列（`arg1[_i][global.language]`），所以 map 里存的是**单一语言的字符串**，我们注入时也要自己按语言分支：
+
+```gml
+// 插入位置：scr_tableWriteMap(global.char_name, _array, "char_name"); 之后
+var _mc_name = "My Hero";            // 默认英文
+var _mc_class = "Sellsword";
+var _mc_desc = "A stranger with a borrowed blade.";
+
+switch (global.language)
+{
+    case 1:
+        _mc_name = "Мой Герой";
+        _mc_class = "Наёмник";
+        _mc_desc = "Чужак с чужим клинком.";
+        break;
+    case 3:
+        _mc_name = "我的角色";
+        _mc_class = "佣兵";
+        _mc_desc = "带着一把借来的剑的陌生人。";
+        break;
+}
+
+ds_map_set(global.char_name, "MyHero", _mc_name);      // 键 = nameKey
+ds_map_set(global.class_name, "Sellsword", _mc_class); // 键 = classKey
+ds_map_set(global.char_desc, "MyHero", _mc_desc);      // 键 = nameKey
+```
+
+- `global.language` 就是表的列号：`0` 是键列，`1` 俄语、`2` 英语、`3` 中文 …… `12` 韩语，`scr_tableWriteMap` 里就是拿它当下标用的。这个对应关系已在源码里反查印证过：`global.language == 2` 走英语的大小写处理（`scr_stringTransform`），`== 3` 走中文标点与中文字体（`scr_fontsUpdate` / `scr_stringInsertSpaces`），`== 11` 日文、`== 12` 韩文，和 `ModLanguage` 枚举顺序一致（列号 = 枚举序号 + 1）；
+- 键千万别搞混：`char_name` / `char_desc` 用 **nameKey**，`class_name` 用 **classKey**；
+- 不写 `race_name` / `sex_name` / `country_name` 也可以，直接用原版已有的 `"Male"` / `"Human"` / `"Aldor"`；
+- **`"Aldor"` 这种 key 大小写敏感**，图标精灵实际叫 `s_country_Aldor`（大写 A），写错就是空图标。
+
+### 15.7 精灵：命名契约 + 必须补原点
+
+`gml_GlobalScript_scr_playerSpriteInit` 是按名字拼出来的：
+
+```gml
+global.playerSpriteBody = sprite_get_index(_bodySpriteName);
+global.playerSpriteBodyMask = sprite_get_index(_bodySpriteName + "_mask");
+global.playerSpriteHeadNormalArray = [sprite_get_index(_headSpriteName + "_normal"), sprite_get_index(_headSpriteName + "_helmet_normal")];
+global.playerSpriteHeadBloodArray  = [sprite_get_index(_headSpriteName + "_blood"),  sprite_get_index(_headSpriteName + "_helmet_blood")];
+```
+
+所以 `Head` 填 **不带后缀** 的名字。实测规格（原版值，照抄尺寸就行）：
+
+| 精灵 | 尺寸 | 帧 | 原点 | 必需 |
+|---|---|---|---|---|
+| `s_<角色名>`（卡片头像） | 37×50 | 1 | 0,0 | ✅ |
+| `s_<角色名>Head_normal` | 31×35 | 4 | **15,36** | ✅ |
+| `s_<角色名>Head_helmet_normal` | 31×35 | 4 | **15,36** | ✅ |
+| `s_<角色名>Head_blood` | 31×35 | 4 | **15,36** | ✅ |
+| `s_<角色名>Head_helmet_blood` | 31×35 | 4 | **15,36** | ✅ |
+| `s_<角色名>_dead`（尸体） | 40×40 | 1 | **20,20** | ✅ |
+| 身体（可直接复用 `s_human_male` / `s_dwarf_male` / `s_human_female`） | 48×40 + `_mask` | 3 | 22,34 | ❌ 可省 |
+| `s_char_<武器>_<角色名>`（专属持握变体） | 48×40 | 2 | — | ❌ 可省，有回退 |
+
+**最大的坑在原点**：贴图注入器新建精灵时原点固定写 `(0,0)`、margin 写满整张图：
+
+```csharp
+UndertaleSprite newSprite = Msl.CreateSpriteNoCollisionMasks(
+    spriteName,
+    new MarginData(0, node.Height - 1, 0, node.Width - 1),
+    new OriginData(0, 0),
+```
+
+而合成玩家外观时就是靠原点定位的（`draw_sprite_ext(sprite, index, x, y, ...)`），原点不对头就会飞出去。**注入完成后必须在 `PatchMod()` 里手工改回来**：
+
+```csharp
+public override void PatchMod()
+{
+    FixOrigin("s_myherohead_normal", 15, 36);
+    FixOrigin("s_myherohead_helmet_normal", 15, 36);
+    FixOrigin("s_myherohead_blood", 15, 36);
+    FixOrigin("s_myherohead_helmet_blood", 15, 36);
+    FixOrigin("s_myhero_dead", 20, 20);
+}
+
+private static void FixOrigin(string name, int x, int y)
+{
+    UndertaleSprite sprite = Msl.GetSprite(name);
+    sprite.OriginX = x;
+    sprite.OriginY = y;
+}
+```
+
+> `PatchMod()` 执行时贴图已经注入完了，所以这里能直接 `GetSprite`。卡片头像原版就是 `(0,0)`，不用改。
+> 原版头部精灵名有个拼写错误——是 `s_JogrimHead`（少一个 r），抄模板时按实际名字取。
+
+**已实机验证**：不加这段修正头部会错位，加上之后头部与身体拼接正常。别把这条当成“可选优化”。
+
+### 15.8 完整注入清单
+
+工程名假设为 `New_Character`，角色 `nameKey` 为 `MyHero`：
+
+| # | 目标 | 手段 |
+|---|---|---|
+| 1 | 新建 `o_myhero` | `Msl.AddObject("o_myhero", spriteName:"s_char_select", parentName:"o_player", isVisible:true, isPersistent:false, isAwake:true)` |
+| 2 | 角色 Create 事件 | `Msl.AddNewEvent("o_myhero", ModFiles.GetCode("gml/o_myhero_Create.gml"), EventType.Create, 0)` |
+| 3 | 注册进 `classesMap` | `LoadGML("gml_Object_o_dataLoader_Other_10")` → 在 `global.player_class = -4` **之前**插 `scr_classCreate(...)` |
+| 4 | 三条文本 | `LoadGML("gml_Object_o_textLoader_Other_25")` → 在 `scr_tableWriteMap(global.char_name, _array, "char_name");` **之后**插 `ds_map_set(...)` |
+| 5 | 精灵原点 | 见 §15.7，`PatchMod()` 里 `GetSprite` 后改 `OriginX/OriginY` |
+| 6 | 封面 | 工程根目录 `icon.png` |
+
+C# 侧骨架：
+
+```csharp
+public override void PatchMod()
+{
+    // 1) 空壳角色对象
+    Msl.AddObject("o_myhero", spriteName: "s_char_select", parentName: "o_player",
+                  isVisible: true, isPersistent: false, isAwake: true);
+    Msl.AddNewEvent("o_myhero", ModFiles.GetCode("gml/o_myhero_Create.gml"), EventType.Create, 0);
+
+    // 2) 注册（必须在 global.player_class = -4 之前；这两个锚点已实测可用，见 §15.10.2）
+    Msl.LoadGML("gml_Object_o_dataLoader_Other_10")
+       .MatchFrom("global.player_class = -4")
+       .InsertAbove(ModFiles.GetCode("gml/register_class.gml"))
+       .Save();
+
+    // 3) 文本
+    Msl.LoadGML("gml_Object_o_textLoader_Other_25")
+       .MatchFrom("scr_tableWriteMap(global.char_name, _array, \"char_name\")")
+       .InsertBelow(ModFiles.GetCode("gml/register_text.gml"))
+       .Save();
+
+    // 4) 精灵原点
+    FixOrigin("s_myherohead_normal", 15, 36);
+    ...
+}
+```
+
+`gml/register_class.gml`：
+
+```gml
+scr_classCreate(
+    o_myhero,
+    s_myhero,
+    "MyHero", "Male", "Human", "Aldor", "Sellsword",
+    11, 10, 10, 11, 10,
+    [global.swords_tier1, global.athletics_tier1, global.armor_tier1, global.combat_tier1],
+    []
+);
+```
+
+直接写资产名就行，**不用** `asset_get_index`：MSL 的 GML 编译器在资产表里查名字，而 `Msl.AddObject` 已经先把 `o_myhero` 加进去了（资产数量变了会触发重建，见 `GmlCompiler.AssetsChanged`）。实测编译结果就是索引：`scr_classCreate(9665, 17248, "MyHero", ...)`。`asset_get_index("o_myhero")` 写法同样能用，只是多余。
+
+`perksArray` 传 `[]` 就是“开局没有 perk”；想给就传原版 perk 对象名，如 `[o_xxx]`。
+
+### 15.9 已知缺陷与坑（新增角色特有）
+
+| # | 现象 | 原因 | 做法 |
+|---|---|---|---|
+| 1 | 锚点找不到 / 插入位置跳进 `if` 与 `{` 之间 | MSL 自带的旧版反编译器输出与 UTMT 0.9.2 不一致：MSL 出**资产名**、UTMT 出**索引**，且 MSL 版本**不带分号**；`MatchFrom` 是整行比对，多一个 `;` 就失配 | 用 §15.10.1 的探针拿真实文本；本节两个锚点已实测（§15.10.2） |
+| 2 | 头飞出去 / 头位置错 | 新建精灵原点恒为 `(0,0)` | §15.7 手工改 `OriginX/OriginY` |
+| 3 | 选人界面根本不出现新卡 | 注册代码没跑到 / `orderArray` 没追加 | 确认插入点在 `classesMap` 初始化之后、且 `scr_classCreate` 没抛错 |
+| 4 | 卡上名字显示成 `name[MyHero]` | 文本 map 里没这个键 | §15.6 补 `ds_map_set`，键用 nameKey |
+| 5 | 卡上国家图标空白 | `countryKey` 写错大小写 | 只有 `Aldor` / `Skadia` / `Fjall` / `Jacinth` / `Yohara` / `Nistra`，对应精灵 `s_country_<Key>` |
+| 6 | 五维跟自己填的不一样 | 在 Create 里手写了 `STR` | 删掉，交给 `scr_classInit("parameters")` |
+| 7 | 新角色没有专属台词/剧情反应 | 台词按 name/race/sex 过滤，新 nameKey 只命中通用分支 | 内容层限制；要专属台词得改 `table_char_lines` |
+| 8 | 删掉 mod 后读档崩 | 存档里存的是 `playerClass` 对象名，对象不存在 | 分发说明必须写清：卸载前先备份存档 |
+| 9 | 进游戏直接是序章，看不到选人界面 | 序章未通关 | 通关一次，或手动把 `account.ini` 的 `Prologue/isComplete` 设成 `true` |
+| 10 | 和别的 mod 冲突 | 都要改 `o_dataLoader` / `o_textLoader` 同一个代码条目 | 锚点尽量短且唯一；不要 `MatchAll().ReplaceBy` 整段替换 |
+
+### 15.10 验证
+
+#### 15.10.1 第一步：探针拿真实反编译文本
+
+锚点必须对着 **MSL 自己的反编译器输出** 写，不能照抄 UTMT 的结果。用一个只做导出的临时 mod 就能拿到：
+
+```csharp
+// 探针 mod 的 PatchMod()：把目标代码条目按 MSL 视角 dump 出来
+public override void PatchMod()
+{
+    string dir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "msl_probe");
+    System.IO.Directory.CreateDirectory(dir);
+
+    System.IO.File.WriteAllLines(
+        System.IO.Path.Combine(dir, "dataLoader.txt"),
+        Msl.LoadGML("gml_Object_o_dataLoader_Other_10").ienumerable);
+
+    System.IO.File.WriteAllLines(
+        System.IO.Path.Combine(dir, "textLoader.txt"),
+        Msl.LoadGML("gml_Object_o_textLoader_Other_25").ienumerable);
+}
+```
+
+`FileEnumerable.ienumerable` 是公开字段，直接写盘即可。
+
+**实测差异（重要）**：MSL 反编译出来的是**资产名**，UTMT 0.9.2 反编译出来是**索引**。同一段注册代码，两种工具的输出长这样：
+
+```gml
+// MSL 反编译（gml_Object_o_dataLoader_Other_10，共 320 行）
+scr_classCreate(o_reaver, s_Jorgrim, "Jorgrim", "Male", "Dwarf", "Fjall", "Reaver", 11, 10, 11, 11, 10, [...], [6729])
+
+// UTMT 0.9.2 反编译同一行
+scr_classCreate(6979, 6779, "Jorgrim", "Male", "Dwarf", "Fjall", "Reaver", 11, 10, 11, 11, 10, [...], [6729]);
+```
+
+差别不止资产名：MSL 版本**不带分号**，这是写锚点时最容易踩空的地方（`MatchFrom` 是按行全文比对，多一个 `;` 就找不到）。
+
+#### 15.10.2 实测通过的两个锚点
+
+| 代码条目 | 锚点原文（照抄，无分号） | 插入方式 | 实测位置 |
+|---|---|---|---|
+| `gml_Object_o_dataLoader_Other_10` | `global.player_class = -4` | `InsertAbove` | 原第 67 行；插入后新行落在第 65 行，紧跟 9 条原版 `scr_classCreate` 之后 |
+| `gml_Object_o_textLoader_Other_25` | `scr_tableWriteMap(global.char_name, _array, "char_name")` | `InsertBelow` | 原第 63 行；插入块落在第 64 行起，仍在 `case 0:` 块内 |
+
+两条都验证过 **插入位置正确**（不是插进 `if` 与 `{` 之间）：
+
+```gml
+// dataLoader 补丁后（节选，第 62–66 行）
+scr_classCreate(3361, 11202, "Leosthenes", ...);
+scr_classCreate(1750, 11358, "Mahir", ...);
+scr_classCreate(3482, 1857, "Hilda", ...);
+scr_classCreate(9665, 17248, "MyHero", "Male", "Human", "Aldor", "Sellsword", 11, 10, 10, 11, 10, [global.swords_tier1, global.athletics_tier1, global.armor_tier1, global.combat_tier1], []);
+global.player_class = -4;
+```
+
+```gml
+// textLoader 补丁后（节选，第 63–66 行）
+scr_tableWriteMap(global.char_name, _array, "char_name");
+var _mc_name = "My Hero";
+var _mc_class = "Sellsword";
+var _mc_desc = "A stranger with a borrowed blade and a name nobody bothered to remember.";
+```
+
+#### 15.10.3 第二步：整链路
+
+```powershell
+ModShardLauncher.CLI.exe compile --source "%LOCALAPPDATA%\ModShardLauncher\ModSources\New_Character"
+ModShardLauncher.CLI.exe patch --data "<游戏目录>\original.win" --output ".\out.win" --enable New_Character
+```
+
+两个容易卡住的地方：
+
+- `--enable` 写的是包里的 **`Mod.Name`**（本例 `New_Character`），**不是** 文件名 `New_Character-v0.1.0.0.sml` 去掉后缀；写错会报 `Mod xxx not found`。
+- `Mods` 目录里同名程序集只能有一份（§10.2 #11）。改版本号重编译后，先把旧的 `.sml` 删掉或改名 `.sml.bak`。
+
+本次实测耗时：编译 ~2 s，打补丁 8.6 s（首次，反编译缓存冷），再次打补丁 3.4 s（缓存热）。
+
+#### 15.10.4 实测结果（v0.13.2.0 + `original.win`）
+
+打完后用 UTMT 读回 `out.win` 校验，逐项对照：
+
+| 检查项 | 结果 |
+|---|---|
+| 对象 `o_myhero` | ✅ 存在，`sprite=s_char_select`、`parent=o_player`、`visible=true`、`persistent=false`、`awake=true`，与原版角色对象完全一致 |
+| `classesMap` 注册 | ✅ 生成了 `scr_classCreate(9665, 17248, "MyHero", ...)`，`9665` = `o_myhero`、`17248` = `s_myhero`，资产名解析正确 |
+| 卡片头像 `s_myhero` | ✅ 37×50，1 帧，origin `0,0` |
+| 头部 4 张 | ✅ 均 31×35、4 帧、origin 修正为 `15,36`（不修就是 `0,0`） |
+| 尸体 `s_myhero_dead` | ✅ 40×40，1 帧，origin `20,20` |
+| 文本注入 | ✅ `char_name` / `class_name` / `char_desc` 三处 `ds_map_set` 就位，中文与俄文字符串往返无损 |
+| 角色 Create 事件 | ✅ `gml_Object_o_myhero_Create_0` 已生成（41 行），`Head` / `CorpseSprite` 引用正确 |
+| GML 编译 | ✅ 打补丁阶段无 `GML Compile Error`，说明注入的语法与资产引用都合法 |
+| 对象总数 | 9696 → 9697 |
+
+**实机部分**（2026-11-03 用 `out.win` 进游戏验证）：清单 5 项全部通过，见 §15.10.5。这一步同时反证了三处此前的静态推断——卡片确实自动出现（§15.3）、五维确实来自 `scr_classInit("parameters")` 而不是 Create 事件（§15.5）、原点不修确实会错位（§15.7）。
+
+#### 15.10.5 实机确认清单（全部通过）
+
+| # | 检查项 | 结果 |
+|---|---|---|
+| 1 | 选人界面出现新卡，位置在原版 5 个之后、末尾占位卡之前 | ✅ |
+| 2 | 卡上头像、名字（`My Hero`）、职业名（`Sellsword`）、五维（11/10/10/11/10）、技能树正确 | ✅ |
+| 3 | 选它开局，进第一个场景后人能正常站立、走动，**头的位置正确** | ✅ |
+| 4 | 背包里有 `Worn Cloak` / `Peasant Shoes` / `Homemade Blade` 和 300 金币 | ✅ |
+| 5 | 存档 → 回主菜单 → 读档，不崩，外观与装备都在 | ✅ |
+
+也就是说 §15.1–§15.8 给出的做法是**可直接照抄的**，不用再自己试。剩下的工作只有美术替换和内容差异化（§15.9 #7）。
+
+---
+
+## 16. 附录 D：技能、状态与技能树
+
+§7 讲武器、§14 讲音效菜单、§15 讲角色；这一节是**技能 / buff / 技能树 / 变身**四件套，全部来自实际做一整套自定义角色的过程，坑都标出来了。
+
+### 16.1 主动技能
+
+一个能用的主动技能 = **3 个对象 + 1 行数值表 + 2 条文本**：
+
+| 组件 | 要求 |
+|---|---|
+| 技能本体 `o_skill_xxx` | parent **必须是 `o_skill`**；sprite 填图标本身 |
+| 技能图标 `o_skill_xxx_ico` | parent **必须是 `o_skill_ico`**；sprite 同图标 |
+| 效果 buff `o_b_xxx` | parent `o_buff_maneuver`（或其它 `o_buff_*`），见 §16.2 |
+| 数值表行 | `gml_GlobalScript_table_skills_stats` 追加一行 |
+| 名称/描述 | `ds_map_set(global.skill_name_text / global.skill_desc, "技能名", ...)` |
+
+技能本体的 Create 只有三行：
+
+```gml
+event_inherited();
+skill = "Dimming_Decree";                    // 数值表的行键
+ds_list_add(attribute, ds_map_find_value(global.attribute, "STR"));
+scr_skill_atr(0);                            // 从数值表读名字/描述/消耗/冷却
+```
+
+图标对象的 Create：
+
+```gml
+event_inherited();
+child_skill = asset_get_index("o_skill_dimming_decree");
+event_perform_object(child_skill, ev_create, 0);   // 把技能的字段搬到自己身上
+```
+
+**数值表列序**（`scr_create_skill_map` 按下标取值，不是按表头名）：
+
+| 下标 | 含义 | 下标 | 含义 |
+|---|---|---|---|
+| 0 | 技能名（行键） | 14 | Bonus_Range |
+| 1 | **Object**：效果 buff 的对象名 | 15 | Starcast |
+| 2 | Target：`No Target` / `Point` / `Single` … | 16 | Branch |
+| 3 | Range | 17 | is_knockback |
+| 4 | **KD（冷却回合）** | 18 | Crime |
+| 5 | **MP（能量消耗）** | 19 | Metacategory |
+| 6 | is_moving_zone | 20 | FMB |
+| 7 | **Duration（持续回合）** | 21 | AP |
+| 8/9 | AOE 长/宽 | 22~25 | Attack / Stance / Charge / Maneuver |
+| 10 | is_movement | 26 | Spell |
+| 11 | Pattern | 27 | Tags |
+| 12 | Validators（如 `AVOID_TILEMARKS`） | | |
+| 13 | Class（`skill` / `spell`） | | |
+
+**最小可行做法**：复制一行现成的 `No Target` 技能（如 `Brace_For_Impact`），只改 0/1/4/5/7 五列，列数保持与原行一致：
+
+```csharp
+string[] cells = SkillRowTemplate.Split(';');
+cells[0] = skill.Name;      // 技能名
+cells[1] = skill.Buff;      // buff 对象名
+cells[4] = skill.Kd;        // 冷却
+cells[5] = skill.Mp;        // 消耗
+cells[7] = skill.Dur;       // 持续回合
+table.Add(string.Join(";", cells));
+```
+
+`Target = No Target` **且** `Duration > 0` 时，技能施放会自动在施法者身上创建 `Object` 列指向的 buff，不需要写施法逻辑 —— 这就是"自施型技能"最省事的实现（§16.2）。
+
+**开局给技能**（可选）：在 `gml_Object_o_skill_fast_panel_Alarm_0` 里插一行，槽位 0..9：
+
+```gml
+if (instance_exists(o_caligo))
+    scr_create_skill_on_start(o_skill_dimming_decree_ico, 7);
+```
+
+### 16.2 状态（Buff）
+
+buff 的骨架（`o_b_xxx`）：Create 初始化 → **Alarm_2 施加效果** → Destroy 收尾。
+
+```gml
+// Create
+event_inherited();
+scr_buff_atr();          // 按 object_get_name 取 buff_name_text / buff_desc_text
+stack = 1;
+first_turn = true;
+max_duration = 4;
+buff_snd = 170;
+```
+
+```gml
+// Alarm_2：创建后一帧触发，也是「读档后重新施加」的唯一入口
+event_inherited();
+
+with (target)
+{
+    __dsDebuggerMapClear(other.data);
+
+    ds_map_add(other.data, "STR", 3);
+    ds_map_add(other.data, "Weapon_Damage", 25);
+    ds_map_add(other.data, "Damage_Received", -20);
+
+    if (!other.is_load)
+        scr_guiAnimation_ext(x, y, 16217);
+}
+```
+
+要点：
+
+- `data` 是**属性增减表**，`scr_atr_calc` 通过 `scr_buff_param("键")` 把它叠进角色数值；
+- `is_load` 用来区分"施放"与"读档恢复"，一次性表现（音效/动画/特效）必须放在 `if (!other.is_load)` 里，否则读档会重放；
+- 读档恢复依赖 Alarm_2，所以**任何施加逻辑都必须写在 Alarm_2，不能只写在技能里**；
+- 需要撤回的效果（换外观、挂子对象）写进 **Destroy** 事件，并且 `event_inherited()` 放第一行。
+
+**常用 data 键**（`scr_atr_calc` 里消费的）：
+
+| 类别 | 键 |
+|---|---|
+| 五维 | `STR` `AGL` `PRC` `Vitality` `WIL` |
+| 攻防 | `Weapon_Damage`（%）`Magic_Power`（%）`Damage_Received`（%，负数为减伤）`Pain_Resistance` `Cooldown_Reduction` |
+| 生存 | `EVS` `PRR` `Block_Power` `Fortitude` `Lifesteal` `MP_Restoration` `max_hp` `max_energy` |
+| 其它 | `Noise_Produced` `Bonus_Range` `MP_turn` `HP_turn` |
+
+> `Pure_Damage` 只用于角色面板显示，**不会**参与伤害计算——想要"纯粹伤害"得挂伤害函数（§16.4）。
+
+buff 文本键规则：`scr_buff_atr()` 默认 `arg0 = object_get_name(object_index)`，所以 **`buff_name_text` / `buff_desc_text` 的键是完整对象名**，例如 `o_b_pallid_sovereign`。
+
+### 16.3 技能树
+
+三层结构，全部硬编码：
+
+```text
+左侧分组（3 个，硬编码）→ 分支 o_skill_category 子对象 → 技能格子（分支 skill 数组里的对象）
+```
+
+**1) 分组**：`gml_Object_o_skillmenu_Create_0` 里是两个数组字面量，`_metaCategoriesArray` 有 3 个子数组（0=WEAPONRY / 1=UTILITY / 2=SORCERY）。不新建分组就往对应下标 push：
+
+```gml
+array_push(_metaCategoriesArray[2], asset_get_index("o_skill_category_vareth_curse"));
+```
+
+要新建分组则再往 `_metaCategoriesNamesArray` push 一个名字，注意两处 push 都要插在数组字面量**之后、长度计算之前**。
+
+**2) 分支**：`o_skill_category` 的子对象，两个事件：
+
+```gml
+// Create
+event_inherited();
+text = "Vareths_Curse";                                    // 分组内的分支名键
+skill = [asset_get_index("o_skill_dimming_decree_ico"), ...]; // 格子里的节点
+branch_sprite = 230;                                        // 分支插图（可复用原版）
+KD = 0;
+category = "utility";
+alarm[3] = 10;                                             // 见下面的解锁时机
+```
+
+```gml
+// Other_24：格子坐标 + 连线（坐标照抄原版分支最省事）
+var _p1 = new ctr_SkillPoint(connectionsRender, asset_get_index("o_skill_xxx_ico"), 31, 55);
+var _l1 = new ctr_SkillLine(connectionsRender, 7277, 31, 70);
+
+// 不要写 _p4.addConnectedPoints([_p1])：MSL 编译器不支持这种调用形式。
+// 也不能写 with (_p4) addConnectedPoints([_p1])：那样是按全局函数名查找，运行期报
+// "Unable to find function addConnectedPoints"。
+// addConnectedPoints / addConnectedLines 是 ctr_SkillConnection 上的 static 方法，
+// 作用就是 array_push(pointsArray / linesArray, ...)，直接给成员赋值即可：
+_p4.pointsArray = [_p1];
+_p4.linesArray = [_l1];
+_l1.pointsArray = [_p1];
+```
+
+原版格子尺寸：**列间距 50（x = 31/81/131）、行间距 73（y = 55/128/201）**，取自 `o_skill_category_basic_armor`（着甲）。竖线用 sprite `7277`；斜线/横线还有 `14447 / 7376 / 412 / 15487 / 12207 / 16372 / 5713`。
+
+> `obj.method(...)` 这种写法 MSL 的 GML 编译器**不支持**（报 `Expected assignment operator`），必须写成 `with (obj) method(...)`（§10.2 #22）。
+
+**3) tier 数组**：决定"这个分支属于谁"，在 `scr_skill_tier_init()` 之后赋值：
+
+```gml
+// 结构：[0] = 分支的 text 键，后面是节点对象
+global.vareth_curse_tier1 = ["Vareths_Curse", asset_get_index("o_skill_dimming_decree_ico"), ...];
+```
+
+然后把它放进角色注册的 `tiersArray`，或在游戏开始时显式解锁：
+
+```gml
+scr_skill_open_from_array1d(global.vareth_curse_tier1);   // 只把 is_lock 置 false，不动花费
+scr_tier_open("Vareths_Curse");                          // 直接把整条分支设为已开启
+```
+
+**4) 被动技能**：原版的 `o_pass_skill_*` **没有独立的 ico**——格子里的实例本身就是被动本体，判定方式是
+
+```gml
+if (instance_exists(o_pass_skill_asceticism) && o_pass_skill_asceticism.is_open)
+```
+
+所以自建被动只要：parent = `o_skill_passive`、sprite = 图标、Create 里建 `data` 写加成、直接放进分支的 `skill` 数组。`o_skill_ico_Other_10` 里的 `object_is_ancestor(object_index, o_skill_passive)` 会自动把它们排除在快捷栏之外。
+
+被动 Create 的写法（注意 `scr_skill_atr` 的参数）：
+
+```gml
+event_inherited();
+scr_skill_atr("Ash_Edge");          // ← 必须是技能名字符串
+data = __dsDebuggerMapCreate();
+ds_map_add(data, "Weapon_Damage", 10);
+attributes_names_to_open = ["STR"];
+attributes_value_to_open = 0;
+level_to_open = 1;
+```
+
+> `scr_skill_atr` 内部对两种对象走完全不同的分支：**非被动**用 `skill` 变量查数值表并填 `name` / `desc`；**被动**只做 `name = skill_name_text[argument0]`、`desc = skill_desc[argument0]`。所以被动传 `0` 会让提示框里显示成 `0`（§10.2 #29）。
+
+**5) 解锁时机（坑）**：格子实例由分支基类的 `Alarm_0` **延后 2 帧**创建，所以在游戏开局调 `scr_skill_open_from_array1d` 时它们还不存在，`with (_obj)` 是空操作——表现就是节点一直显示「需要阅读相应文献才能解锁」。补一个自己的定时器：
+
+```gml
+// 分支 Create
+alarm[3] = 10;
+
+// 分支 Alarm_3
+if (!variable_global_exists("vareth_curse_tier1")) exit;
+scr_skill_open_from_array1d(global.vareth_curse_tier1);
+```
+
+### 16.4 变身与伤害钩子
+
+**换外观**：不要写 `characterDataMap`（会进存档），直接改 `scr_playerSpriteInit` 用的那几个全局：
+
+```gml
+global.playerSpriteBody = sprite_get_index("s_caligo_pallid_body");
+global.playerSpriteBodyMask = sprite_get_index("s_caligo_pallid_body_mask");
+global.playerSpriteHeadNormalArray = [sprite_get_index("..._normal"), sprite_get_index("..._helmet_normal")];
+global.playerSpriteHeadBloodArray = [sprite_get_index("..._blood"), sprite_get_index("..._helmet_blood")];
+```
+
+`scr_playerSpritePartsUpdate` 每帧比对这几个全局，变了就重建合成图，所以**不需要手动刷新**。恢复时改回原值即可；读档场景由 buff 的 Alarm_2 重新施加。
+
+**世界失色**：游戏自带饱和度后处理，`o_shader_start` 的 Draw 里有
+
+```gml
+shader_set_uniform_f(uSaturationAmount, 1 + saturationRain + saturationFocus + saturationVignette);
+```
+
+用 `ReplaceBy` 整行替换，把自己的偏移加进去（0 = 正常，-1 = 全灰）：
+
+```gml
+global.caligo_dim = lerp(global.caligo_dim, _target, 0.06);
+shader_set_uniform_f(uSaturationAmount, 1 + saturationRain + saturationFocus + saturationVignette + global.caligo_dim);
+```
+
+只影响**世界层**，UI 不跟着变灰。
+
+**附加伤害**：能改的入口有限，实测结果如下：
+
+| 代码条目 | 能否重新编译 | 说明 |
+|---|---|---|
+| `scr_attack_result_hit` | ✅ | 近战命中，`_damage` 算完后 `+=` |
+| `scr_simple_damage` | ✅ | 技能/法术扣血的最终出口，`argument1 +=` |
+| `scr_damage` | ✅ | 另一种伤害应用入口 |
+| `scr_cast_spell` | ✅ | 施法总入口 |
+| `scr_damage_calculation` | ❌ | 反编译文本无法回编译 |
+| `scr_skill_damage` | ❌ | 同上 |
+| `scr_physical_damage` | ❌ | 同上 |
+
+```gml
+// scr_attack_result_hit 里，紧跟 max(scr_damage_calculation(...)) 那行之后
+if (variable_global_exists("caligo_form") && global.caligo_form && is_player(id))
+    _damage += 6;
+```
+
+```gml
+// scr_simple_damage 里，紧跟 var _id = id 之后
+if (variable_global_exists("caligo_form") && global.caligo_form)
+{
+    var _who = id;
+    if (variable_instance_exists(id, "owner") && instance_exists(owner) && is_player(owner))
+        _who = owner;
+    if (is_player(_who))
+        argument1 += 6;
+}
+```
+
+> 两个钩子不要同时命中同一段伤害，否则会翻倍：近战走 `scr_attack_result_hit`，技能/法术走 `scr_simple_damage`，互不重叠。
+
+**扩散特效**：直接用图元画椭圆环，不依赖任何精灵，也不占贴图块（避免 §10.2 #23 的纹理计数问题）：
+
+```gml
+gpu_set_blendmode(bm_add);
+draw_primitive_begin(pr_linestrip);
+for (var _i = 0; _i <= 48; _i++)
+{
+    var _ang = _i * 7.5;
+    draw_vertex_colour(x + lengthdir_x(_r, _ang), y + (lengthdir_y(_r, _ang) * 0.5), colour, _a);
+}
+draw_primitive_end();
+gpu_set_blendmode(bm_normal);
+```
+
+### 16.5 文本表：键规则
+
+`o_textLoader` 里每个段先 `scr_tableWriteMap(global.xxx, _array, "段名")`，再被各处 `ds_map_find_value_ext` 读取。补文本**不要改那张几十万字符的表**，直接 `ds_map_set`：
+
+| map | 键 | 用途 |
+|---|---|---|
+| `global.char_name` | nameKey | 角色名 |
+| `global.class_name` | **classKey** | 职业名（角色面板大标题，会转大写） |
+| `global.char_desc` | **nameKey** | 角色面板正文（自动换行、自动高度，可放长文） |
+| `global.skill_name_text` / `global.skill_desc` | 技能名（数值表行键） | 技能 |
+| `global.buff_name_text` / `global.buff_desc_text` | **buff 对象名** | buff |
+| `global.tier_name` | 分支的 `text` | 技能树分支名 |
+
+**最大的坑**：`scr_tableWriteMap` **会先清空目标 map 再填充**。所以注入位置必须在这张 map 自己的 `scr_tableWriteMap` 调用**之后**——插在前面会被紧接着的清空抹掉，表现为界面上显示 `className[...]` / `classDescription[...]` 这种原始键。
+
+角色三条文本要插在 `scr_tableWriteMap(global.char_desc, ...)` 之后（它晚于 `char_name`、`class_name`），一次覆盖三张表。
+
+`global.language` 就是表列号：1 俄 / 2 英 / 3 中 / … / 11 日 / 12 韩，与 `ModLanguage` 枚举顺序一致（列号 = 枚举序号 + 1）。
