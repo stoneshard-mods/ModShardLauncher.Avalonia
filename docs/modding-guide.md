@@ -1,6 +1,6 @@
 # 模组制作指南（C# / .sml）
 
-面向想为《石质碎片》（Stoneshard）写 C# 模组的人。本文按**本仓库（Avalonia + .NET 10 重构版）的实际行为**编写，章节结构参考官方文档 [开始](https://modshardteam.github.io/ModShardLauncher/zh/guides/start-modding.html)；与官方文档、以及旧版 WPF 教程不一致的地方，在 [§10](#10-与官方文档的差异与已知缺陷) 集中说明并给出原因。
+面向想为《石质碎片》（Stoneshard）写 C# 模组的人。本文按**本仓库（Avalonia + .NET 10 重构版）的实际行为**编写；与旧版 WPF 教程不一致的地方，在 [§10](#10-已知差异与缺陷) 集中说明并给出原因。
 
 > 本文对应启动器 **v0.13.2.0**。文中代码在 `original.win` 上完整跑过：编译 → 打补丁 → 读回校验，验证方式见 [§11](#11-验证与调试)。若以后代码行为变了，以 `src/ModShardLauncher.Core/` 为准。
 >
@@ -17,13 +17,14 @@
 7. [第一把武器](#7-第一把武器)
 8. [本地化](#8-本地化)
 9. [打补丁、启用与分发](#9-打补丁启用与分发)
-10. [与官方文档的差异与已知缺陷](#10-与官方文档的差异与已知缺陷)
+10. [已知差异与缺陷](#10-已知差异与缺陷)
 11. [验证与调试](#11-验证与调试)
 12. [附录：完整示例](#12-附录完整示例)
 13. [API 速查](#13-api-速查)
 14. [附录 B：注入音效、菜单与 GML 函数](#14-附录-b注入音效菜单与-gml-函数)
 15. [附录 C：新增可选角色](#15-附录-c新增可选角色)
 16. [附录 D：技能、状态与技能树](#16-附录-d技能状态与技能树)
+17. [附录 E：五维属性与状态词条](#17-附录-e五维属性与状态词条)
 
 ## 1. 成品长什么样
 
@@ -59,7 +60,7 @@
 └─ export\           # 可选的导出清单
 ```
 
-与官方文档最大的差异：旧版是在 `ModShardLauncher.exe` 同级建 `Mods` / `ModSources`，**本版固定在用户数据目录**，升级或重装程序不会动你的模组。首次启动会把旧的便携布局自动迁移过来。
+与旧版最大的差异：旧版是在 `ModShardLauncher.exe` 同级建 `Mods` / `ModSources`，**本版固定在用户数据目录**，升级或重装程序不会动你的模组。首次启动会把旧的便携布局自动迁移过来。
 
 - GUI：设置页「文件夹」里可以直接打开这些目录；
 - CLI：`--data-dir <目录>` 可以换一套互不干扰的模组/数据目录；
@@ -223,7 +224,7 @@ public class MyFirstMod : Mod
 
 ### 6.1 GUI
 
-左侧「模组源码」→ 找到工程卡片 → 点「编译」。编译**不需要先打开 `data.win`**（这一点与官方文档不同），成功后会自动刷新「模组」列表。
+左侧「模组源码」→ 找到工程卡片 → 点「编译」。编译**不需要先打开 `data.win`**，成功后会自动刷新「模组」列表。
 
 ### 6.2 CLI
 
@@ -246,7 +247,7 @@ ModShardLauncher.CLI.exe compile --source "%LOCALAPPDATA%\ModShardLauncher\ModSo
 | `.gml` / `.lua` | 原样打进包；运行时用 `Mod.ModFiles.GetCode` / `GetFile` 读取 |
 | 其它扩展名（`.json`、`.txt`、`.wav`、`.py` …） | **被丢弃**，不报错也不进包（见 §10.2 #13） |
 
-白名单按扩展名精确匹配：实测（v0.13.2.0，用一个只有几个空文件的探针工程打包）`dummy.wav`、`dummy.json`、`dummy.txt` 都不进包，而 `dummy.gml`、`sub/probe.lua`、`dummy.wav.lua` 进包，内容完全不变。所以二进制资源（音频、配置等）想进包，就在原名后面再加 `.lua`。
+白名单按扩展名精确匹配（实测：`.wav` / `.json` / `.txt` 不进包，`.gml` / `.lua` 进包，内容不变）。二进制资源（音频、配置等）想进包，就在原名后面再加 `.lua`。
 
 一个 6 张 PNG 的示例包，用 `SmlPackageReader` 读出来是：
 
@@ -342,7 +343,7 @@ public override void PatchMod()
 
 注意：
 
-- `CloneDefaults` 只复制**数值属性**，`Name`、`ID` 和各语言译名需要自己写（官方文档也是这样说的）；
+- `CloneDefaults` 只复制**数值属性**，`Name`、`ID` 和各语言译名需要自己写；
 - `Subtype` 要填该武器实际存在的类型（上面的表里有常用值）。`Msl.InjectTableWeapons` 这种便捷接口会按 `Slot` 猜一个常见值，`Subtype` 想精确控制就用本节的写法；
 - `name` 是装备描述表的键，必须唯一。
 
@@ -466,15 +467,15 @@ ModShardLauncher.CLI.exe patch --data "<原版>\data.win" --output ".\data_patch
 
 ### 9.3 装进游戏
 
-补丁文件不是必须叫 `data.win`。游戏目录里**存在** `data.win` 时，启动会跳过数据文件的选择流程、直接加载它；叫别的名字也能玩，只是每次启动都要在选择界面手动选一次。所以最省事的做法是把打好的文件保存成 `<游戏目录>\data.win`。原版保留为 `original.win`（或 `vanilla.win`），游戏不会自动加载它，下次打补丁仍然打开它。不同版本游戏建议先确认自己用的是 `modbranch` 或与数据表结构匹配的版本。
+补丁文件不是必须叫 `data.win`：游戏目录里**存在** `data.win` 时启动会直接加载它，叫别的名字则每次启动都要在选择界面手动选一次。所以最省事的做法是保存成 `<游戏目录>\data.win`，原版按 §3.1 留作 `original.win`（游戏不会自动加载它）。换游戏版本时先确认用的是 `modbranch` 或与数据表结构匹配的版本。
 
 ### 9.4 分发
 
 给玩家的只有 `.sml`：放进 `%LOCALAPPDATA%\ModShardLauncher\Mods` 即可。WPF 时代编译的旧包**不需要重新编译**也能用——Core 的程序集名固定为 `ModShardLauncher`、版本固定 `1.0.0.0`，旧包按名字就能绑定到新宿主。
 
-## 10. 与官方文档的差异与已知缺陷
+## 10. 已知差异与缺陷
 
-官方文档写于 WPF 版和旧版本游戏。下面是本仓库的差异，**按“现象 / 原因 / 做法”记**，遇到对不上的地方先看这里。
+旧版 WPF 启动器与旧版本游戏的资料已过时。下面是本仓库的实际行为，**按“现象 / 原因 / 做法”记**，遇到对不上的地方先看这里。
 
 ### 10.1 已修复：旧教程里的坑，现在不用绕
 
@@ -492,13 +493,13 @@ v0.13.2.0 之前的版本里，武器表 API 与游戏当前的 84 列结构不�
 
 | # | 现象 | 原因 | 做法 |
 |---|---|---|---|
-| 1 | 官方文档说 `Mods`/`ModSources` 在 exe 同级 | 本版改到 `%LOCALAPPDATA%\ModShardLauncher` | 见 §3 |
-| 2 | 官方文档说必须先打开 `data.win` 才能编译 | 本版编译不依赖游戏数据 | 直接编译 |
+| 1 | 旧版把 `Mods`/`ModSources` 放在 exe 同级 | 本版改到 `%LOCALAPPDATA%\ModShardLauncher` | 见 §3 |
+| 2 | 旧版必须先打开 `data.win` 才能编译 | 本版编译不依赖游戏数据 | 直接编译 |
 | 3 | `Description[ModLanguage.Chinese]` 编译不过 | 这个字段在 `Weapon` 上叫 `WeaponDescriptions` | 用 `WeaponDescriptions[ModLanguage.Chinese]` |
 | 4 | 成员上的 `///` 注释导致 `CS1569` | 打包器的 XML 文档写入缺陷（`count ('-3')`），与中英文无关 | 成员注释统一用 `//` |
 | 5 | `CS0012: ImmutableList<> 在未引用的程序集中定义` | `Localization.LanguageList` 的类型是 `ImmutableList`，打包引用里没有 `System.Collections.Immutable` | 用 `Enum.GetValues<ModLanguage>()` |
 | 6 | 代码里用 `UndertaleData` 报 `CS0012` | 宿主不会把 `UndertaleModLib` 传递给你的工程 | csproj 显式引用 `UndertaleModLib.dll`（§4.3） |
-| 7 | 官方文档要求把 `ModShard.dll` 放进游戏目录、用 `give` 命令 | 本版不提供脚本控制台，也不会注入控制台 GML；`give` / `ModShard.dll` 都不可用 | 调试用日志（§11）；取武器走掉落表/商人 |
+| 7 | 旧版要求把 `ModShard.dll` 放进游戏目录、用 `give` 命令 | 本版不提供脚本控制台，也不会注入控制台 GML；`give` / `ModShard.dll` 都不可用 | 调试用日志（§11）；取武器走掉落表/商人 |
 | 8 | 打补丁时警告 `built with msl ... different from ...` | `.sml` 的构建版本和当前启动器不同 | 只是警告，可以继续；要消掉就重编译 |
 | 9 | 打开 `data.win` 报 YYC | 游戏用了 YoYo 编译器，数据不可改 | 换 `modbranch` 或非 YYC 版本 |
 | 10 | 用原版 MSL（net6.0）打包时报 `System.Linq, Version=10.0.0.0` 找不到，堆栈停在 `PatchMod()` | mod 源码用了 LINQ（如 `.Any(...)`），打包器按当前 .NET 10 环境引用 `System.Linq`，net6 启动器加载时找不到 | 不依赖 LINQ（改 `foreach`），并在 csproj 关闭 `ImplicitUsings`，只用 netstandard 基础 API |
@@ -582,14 +583,14 @@ scr_actionsLogAddMessage("skill=" + string(array_length(skill)));
 
 ### 11.3 本文的验证方式
 
-本文所有代码用下面这条链路验证过（.NET SDK 10.0.402、启动器 v0.13.2.0、游戏目录的 `data-o.win` 作为原版）：
+本文所有代码用下面这条链路验证过（.NET SDK 10.0.402、启动器 v0.13.2.0、游戏目录的 `original.win` 作为原版）：
 
 ```powershell
 # 1. 编译
 ModShardLauncher.CLI.exe compile --source "%LOCALAPPDATA%\ModShardLauncher\ModSources\MyFirstMod"
 
 # 2. 打补丁
-ModShardLauncher.CLI.exe patch --data "<游戏目录>\data-o.win" --output ".\out.win" --all
+ModShardLauncher.CLI.exe patch --data "<游戏目录>\original.win" --output ".\out.win" --all
 
 # 3. 读回 out.win，检查武器表行、装备表行、精灵
 ```
@@ -727,7 +728,7 @@ s_loot_myfirstweapon_0.png   26×13
 | `Msl.AddMenu(...)` / `Msl.AddCreditDisclaimerRoom(...)` | 模组菜单、署名房间 |
 | `Mod.ModFiles.GetFile / GetCode` | 读自己包里打进的其他文件（JSON/GML） |
 
-完整公开 API 见官方 [API 文档](https://modshardteam.github.io/ModShardLauncher/zh/guides/api.html)，以及源码 `src/ModShardLauncher.Core/Modding/`（`Msl` 的公开方法大多带中文注释）。
+完整公开 API 见源码 `src/ModShardLauncher.Core/Modding/`（`Msl` 的公开方法大多带中文注释）。
 
 ---
 
@@ -822,7 +823,7 @@ Error on load
 Unable to find function scr_caligo_set_form
 ```
 
-也就是说上面这段 `my_add()` 里的 `my_init()` 调用、以及 §14.4 那种 `Msl.AddNewEvent(ticker, "my_init()", ...)` 的写法，只要 `my_init` 是 `AddFunction` 加的，运行期都找不到。
+§14.4 那种 `Msl.AddNewEvent(ticker, "my_init()", ...)` 同理：只要 `my_init` 是 `AddFunction` 加的，运行期都找不到。
 
 **结论：注入代码一律内联，不新增函数。** 三条替代路线：
 
@@ -1057,7 +1058,7 @@ scr_tableWriteMap(global.char_desc, _array, "char_desc");
 **在这几句后面补 `ds_map_set` 就行**。注意 `scr_tableWriteMap` 只取当前语言那一列（`arg1[_i][global.language]`），所以 map 里存的是**单一语言的字符串**，我们注入时也要自己按语言分支：
 
 ```gml
-// 插入位置：scr_tableWriteMap(global.char_name, _array, "char_name"); 之后
+// 插入位置：本段自己的 scr_tableWriteMap 之后；通用规则见 §16.5，实测锚点见 §15.10.2
 var _mc_name = "My Hero";            // 默认英文
 var _mc_class = "Sellsword";
 var _mc_desc = "A stranger with a borrowed blade.";
@@ -1081,7 +1082,7 @@ ds_map_set(global.class_name, "Sellsword", _mc_class); // 键 = classKey
 ds_map_set(global.char_desc, "MyHero", _mc_desc);      // 键 = nameKey
 ```
 
-- `global.language` 就是表的列号：`0` 是键列，`1` 俄语、`2` 英语、`3` 中文 …… `12` 韩语，`scr_tableWriteMap` 里就是拿它当下标用的。这个对应关系已在源码里反查印证过：`global.language == 2` 走英语的大小写处理（`scr_stringTransform`），`== 3` 走中文标点与中文字体（`scr_fontsUpdate` / `scr_stringInsertSpaces`），`== 11` 日文、`== 12` 韩文，和 `ModLanguage` 枚举顺序一致（列号 = 枚举序号 + 1）；
+- 语言列号 `global.language` 与 `ModLanguage` 的对应见 §16.5（`case 1` = 俄语、`case 3` = 中文），映射只在那里维护一份；
 - 键千万别搞混：`char_name` / `char_desc` 用 **nameKey**，`class_name` 用 **classKey**；
 - 不写 `race_name` / `sex_name` / `country_name` 也可以，直接用原版已有的 `"Male"` / `"Human"` / `"Aldor"`；
 - **`"Aldor"` 这种 key 大小写敏感**，图标精灵实际叫 `s_country_Aldor`（大写 A），写错就是空图标。
@@ -1107,7 +1108,7 @@ global.playerSpriteHeadBloodArray  = [sprite_get_index(_headSpriteName + "_blood
 | `s_<角色名>Head_blood` | 31×35 | 4 | **15,36** | ✅ |
 | `s_<角色名>Head_helmet_blood` | 31×35 | 4 | **15,36** | ✅ |
 | `s_<角色名>_dead`（尸体） | 40×40 | 1 | **20,20** | ✅ |
-| 身体（可直接复用 `s_human_male` / `s_dwarf_male` / `s_human_female`） | 48×40 + `_mask` | 3 | 22,34 | ❌ 可省 |
+| 身体（复用 `s_human_male` / `s_dwarf_male` / `s_human_female`，**须与头部底稿同种族**） | 48×40 + `_mask` | 3 | 22,34 | ⚠️ 重着色角色须显式设 |
 | `s_char_<武器>_<角色名>`（专属持握变体） | 48×40 | 2 | — | ❌ 可省，有回退 |
 
 **最大的坑在原点**：贴图注入器新建精灵时原点固定写 `(0,0)`、margin 写满整张图：
@@ -1143,6 +1144,51 @@ private static void FixOrigin(string name, int x, int y)
 > 原版头部精灵名有个拼写错误——是 `s_JogrimHead`（少一个 r），抄模板时按实际名字取。
 
 **已实机验证**：不加这段修正头部会错位，加上之后头部与身体拼接正常。别把这条当成“可选优化”。
+
+#### 15.7.1 用原版精灵重绘（换色 / 换底稿）的额外坑
+
+如果不手绘像素，而是像 Caligo 那样——把原版某个角色的头部 / 肖像 / 尸体放进一个“材料类表”里逐像素重新上色，再当成自己的精灵注入——除了 §15.7 的命名与原点，还有一组**静默失败**的坑。管线大致是：
+
+```
+导出原版 sprites → 逐像素查表（源 RGB → 材质类字母 → 输出 RGB）→ 写 PNG → 注入 data.win
+```
+
+| # | 现象 | 原因 | 做法 |
+|---|---|---|---|
+| 1 | 换底稿后整张脸或若干色块**保持原版颜色**，且**不报任何错** | 类表的 key 是**源精灵的精确 RGB**（写成 `"r,g,b"`）；换底稿（如 Dirwin→Jorgrim）后源调色板整体变了，旧键全部 miss，而 miss 时像素**原样保留** | 换底稿后必须重新导出新底稿调色板，**逐值重写**类表 key（导出脚本见下） |
+| 2 | 头和身体肤色对不上，出现“补丁色块 / 半张脸分色” | 头是重着色过的，身体却挂了**异种族**或**没重着色**的原版精灵（重绘矮人头却用 `s_human_male`） | `BodySprite` 必须与头部底稿**同种族**、并同样处理：矮人→`s_dwarf_male`，人→`s_human_male` |
+| 3 | 边缘残留一圈原色“脏边” | 源图有抗锯齿 / 半透明过渡像素，其 RGB 不在类表里 | 补最近色兜底，或把这些过渡色也写进表；纯像素风底稿一般没有这问题 |
+| 4 | 改了脚本、重打后进游戏还是旧的 | 在**已打过补丁**的 `data.win` 上重打，被幂等判断跳过 | 永远在干净的 `original.win` 上重打（§10.2 #14） |
+| 5 | `s_JogrimHead` 找不到 | 原版拼写少一个 r（同 §15.7 注） | 按实际名取 |
+
+**换底稿检查清单**（漏一项就会静默出错）：
+
+- [ ] 头部四个变体目录：`_normal` / `_helmet_normal` / `_blood` / `_helmet_blood`
+- [ ] 肖像目录 `s_<Base>\s_<Base>_0.png`、尸体目录 `s_<Base>_dead\...`
+- [ ] 身体精灵 + `_mask`（与头部**同种族**）
+- [ ] 三个类表（head / portrait / corpse）的 key 全部按新底稿重写
+- [ ] 重跑整链并**读回 `data.win`** 核对尺寸 / 帧 / 原点 / `BodySprite` 名——编译与打补丁成功 **≠** 内容正确
+
+**导出某张 PNG 的去重颜色**（类表 key 直接照抄输出）：
+
+```powershell
+# dump-sprite-palette.ps1 —— 脚本保持纯 ASCII（见 §10.2 #26）
+param([string]$Path)
+Add-Type -AssemblyName System.Drawing
+$bmp = [System.Drawing.Bitmap]::FromFile($Path)
+$seen = @{}
+for ($y = 0; $y -lt $bmp.Height; $y++) {
+    for ($x = 0; $x -lt $bmp.Width; $x++) {
+        $c = $bmp.GetPixel($x, $y)
+        if ($c.A -eq 0) { continue }
+        $seen["$($c.R),$($c.G),$($c.B)"] = 1
+    }
+}
+$bmp.Dispose()
+$seen.Keys | Sort-Object
+```
+
+> 输出里的 `r,g,b` 直接就是类表的 key；重着色**只改输入端（源 key）**，输出端调色板（材质类字母 → 输出 RGB）保持你角色自己的设定。
 
 ### 15.8 完整注入清单
 
@@ -1216,6 +1262,8 @@ scr_classCreate(
 | 8 | 删掉 mod 后读档崩 | 存档里存的是 `playerClass` 对象名，对象不存在 | 分发说明必须写清：卸载前先备份存档 |
 | 9 | 进游戏直接是序章，看不到选人界面 | 序章未通关 | 通关一次，或手动把 `account.ini` 的 `Prologue/isComplete` 设成 `true` |
 | 10 | 和别的 mod 冲突 | 都要改 `o_dataLoader` / `o_textLoader` 同一个代码条目 | 锚点尽量短且唯一；不要 `MatchAll().ReplaceBy` 整段替换 |
+| 11 | 重着色角色部分色块还是原色、或整张脸没变 | 换底稿后类表的源 key 没跟着新底稿重写，查表 miss 且静默保留原色 | 重新导出底稿调色板、逐值重写 key（§15.7.1） |
+| 12 | 头身肤色割裂、出现补丁色块 | `BodySprite` 与头部底稿不同种族，或没跟着一起重着色 | 身体必须同种族并一起处理（§15.7.1 #2） |
 
 ### 15.10 验证
 
@@ -1261,23 +1309,17 @@ scr_classCreate(6979, 6779, "Jorgrim", "Male", "Dwarf", "Fjall", "Reaver", 11, 1
 | `gml_Object_o_dataLoader_Other_10` | `global.player_class = -4` | `InsertAbove` | 原第 67 行；插入后新行落在第 65 行，紧跟 9 条原版 `scr_classCreate` 之后 |
 | `gml_Object_o_textLoader_Other_25` | `scr_tableWriteMap(global.char_name, _array, "char_name")` | `InsertBelow` | 原第 63 行；插入块落在第 64 行起，仍在 `case 0:` 块内 |
 
-两条都验证过 **插入位置正确**（不是插进 `if` 与 `{` 之间）：
+两条都验证过 **插入位置正确**（不是插进 `if` 与 `{` 之间），补丁后节选：
 
 ```gml
-// dataLoader 补丁后（节选，第 62–66 行）
-scr_classCreate(3361, 11202, "Leosthenes", ...);
-scr_classCreate(1750, 11358, "Mahir", ...);
-scr_classCreate(3482, 1857, "Hilda", ...);
-scr_classCreate(9665, 17248, "MyHero", "Male", "Human", "Aldor", "Sellsword", 11, 10, 10, 11, 10, [global.swords_tier1, global.athletics_tier1, global.armor_tier1, global.combat_tier1], []);
+// dataLoader：新行紧跟原版 9 条 scr_classCreate，位于 global.player_class = -4 之前
+scr_classCreate(9665, 17248, "MyHero", "Male", "Human", "Aldor", "Sellsword", 11, 10, 10, 11, 10, [...], []);
 global.player_class = -4;
 ```
 
 ```gml
-// textLoader 补丁后（节选，第 63–66 行）
-scr_tableWriteMap(global.char_name, _array, "char_name");
+// textLoader：插入块落在 scr_tableWriteMap(global.char_name, ...) 之后
 var _mc_name = "My Hero";
-var _mc_class = "Sellsword";
-var _mc_desc = "A stranger with a borrowed blade and a name nobody bothered to remember.";
 ```
 
 #### 15.10.3 第二步：整链路
@@ -1287,10 +1329,7 @@ ModShardLauncher.CLI.exe compile --source "%LOCALAPPDATA%\ModShardLauncher\ModSo
 ModShardLauncher.CLI.exe patch --data "<游戏目录>\original.win" --output ".\out.win" --enable New_Character
 ```
 
-两个容易卡住的地方：
-
-- `--enable` 写的是包里的 **`Mod.Name`**（本例 `New_Character`），**不是** 文件名 `New_Character-v0.1.0.0.sml` 去掉后缀；写错会报 `Mod xxx not found`。
-- `Mods` 目录里同名程序集只能有一份（§10.2 #11）。改版本号重编译后，先把旧的 `.sml` 删掉或改名 `.sml.bak`。
+`--enable` 写的是包里的 `Mod.Name`（不是去掉 `-vX.Y.Z.0` 的文件名），`Mods` 里同名程序集只能留一份——两处的细节见 §10.2 #27、#11。
 
 本次实测耗时：编译 ~2 s，打补丁 8.6 s（首次，反编译缓存冷），再次打补丁 3.4 s（缓存热）。
 
@@ -1310,7 +1349,7 @@ ModShardLauncher.CLI.exe patch --data "<游戏目录>\original.win" --output ".\
 | GML 编译 | ✅ 打补丁阶段无 `GML Compile Error`，说明注入的语法与资产引用都合法 |
 | 对象总数 | 9696 → 9697 |
 
-**实机部分**（2026-11-03 用 `out.win` 进游戏验证）：清单 5 项全部通过，见 §15.10.5。这一步同时反证了三处此前的静态推断——卡片确实自动出现（§15.3）、五维确实来自 `scr_classInit("parameters")` 而不是 Create 事件（§15.5）、原点不修确实会错位（§15.7）。
+**实机部分**（2026-11-03，用 `out.win` 进游戏）：5 项全部通过（§15.10.5），同时验证了 §15.3 自动出卡、§15.5 五维来源、§15.7 原点修正三处推断。
 
 #### 15.10.5 实机确认清单（全部通过）
 
@@ -1322,7 +1361,7 @@ ModShardLauncher.CLI.exe patch --data "<游戏目录>\original.win" --output ".\
 | 4 | 背包里有 `Worn Cloak` / `Peasant Shoes` / `Homemade Blade` 和 300 金币 | ✅ |
 | 5 | 存档 → 回主菜单 → 读档，不崩，外观与装备都在 | ✅ |
 
-也就是说 §15.1–§15.8 给出的做法是**可直接照抄的**，不用再自己试。剩下的工作只有美术替换和内容差异化（§15.9 #7）。
+也就是说 §15.1–§15.8 给出的做法是**可直接照抄的**，不用再自己试。剩下的工作是**美术替换**（重着色 / 换底稿有自己的静默坑，见 §15.7.1）与**内容差异化**（§15.9 #7）。
 
 ---
 
@@ -1357,6 +1396,19 @@ scr_skill_atr(0);                            // 从数值表读名字/描述/消
 event_inherited();
 child_skill = asset_get_index("o_skill_dimming_decree");
 event_perform_object(child_skill, ev_create, 0);   // 把技能的字段搬到自己身上
+```
+
+#### 16.1.1 技能图标必须是 2 帧，第 2 帧是「禁用灰阶」
+
+技能图标固定 **2 帧**：第 1 帧正常态，**第 2 帧是技能不可用（冷却中 / 精力不足）时显示的禁用态**。游戏只是切换 `image_index`，不会替你调色，所以第 2 帧要自己做成**去饱和的纯灰阶**。
+
+- 原版对照：`s_skills_inceneration_1.png` 是纯灰阶，每个像素 `R = G = B`（白色仍是 255）。
+- **不要只压暗**（如 `× 0.55`）：那只是"暗的彩色图"，玩家看不出技能不能放；必须去饱和。
+- 生成方式（按亮度去饱和，`0.299R + 0.587G + 0.114B`）：
+
+```powershell
+$lum = [int](0.299 * $c.R + 0.587 * $c.G + 0.114 * $c.B)
+$bmp.SetPixel($x, $y, [System.Drawing.Color]::FromArgb(255, $lum, $lum, $lum))
 ```
 
 **数值表列序**（`scr_create_skill_map` 按下标取值，不是按表头名）：
@@ -1436,18 +1488,56 @@ with (target)
 - 读档恢复依赖 Alarm_2，所以**任何施加逻辑都必须写在 Alarm_2，不能只写在技能里**；
 - 需要撤回的效果（换外观、挂子对象）写进 **Destroy** 事件，并且 `event_inherited()` 放第一行。
 
-**常用 data 键**（`scr_atr_calc` 里消费的）：
-
-| 类别 | 键 |
-|---|---|
-| 五维 | `STR` `AGL` `PRC` `Vitality` `WIL` |
-| 攻防 | `Weapon_Damage`（%）`Magic_Power`（%）`Damage_Received`（%，负数为减伤）`Pain_Resistance` `Cooldown_Reduction` |
-| 生存 | `EVS` `PRR` `Block_Power` `Fortitude` `Lifesteal` `MP_Restoration` `max_hp` `max_energy` |
-| 其它 | `Noise_Produced` `Bonus_Range` `MP_turn` `HP_turn` |
-
-> `Pure_Damage` 只用于角色面板显示，**不会**参与伤害计算——想要"纯粹伤害"得挂伤害函数（§16.4）。
+`data` 能写哪些键、各自含义见 §17.2 的全量清单，这里不重复。注意 `Pure_Damage` 只用于角色面板显示，**不会**参与伤害计算——想要"纯粹伤害"得挂伤害函数（§16.4）。
 
 buff 文本键规则：`scr_buff_atr()` 默认 `arg0 = object_get_name(object_index)`，所以 **`buff_name_text` / `buff_desc_text` 的键是完整对象名**，例如 `o_b_pallid_sovereign`。
+
+#### 16.2.1 buff 层数显示（图标角上的层数点）
+
+图标上的"层数点"读的是 **`stage`**，不是 `stack`——只设 `stack` 不会显示。照着「搏斗 → 攻击战术」(`o_b_tactics_off`) 写：
+
+```gml
+// Create
+event_inherited();
+scr_buff_atr();
+stage = 1;              // 当前层数（从 1 起）
+max_stage = 6;          // 上限；非 *stage* 基类默认只有 4
+have_stages = true;     // 打开层数绘制
+image_speed = 0;        // 层数 buff 一般不播动画
+max_duration = 9;
+```
+
+- `c_abstract_states_Draw_0` 在 `have_stages` 为真时，用 **`stage_sprite`** 画第 `stage - 1` 帧（`stage_sprite` 由基类 `c_abstract_states_Create_0` 设好：中文 6228 / 其他语言 7075），位置在图标右上角。
+- 改层数：`stage = min(max_stage, stage + 1);`，然后 `with (buff) event_perform(ev_alarm, 2);` 让属性按新层数重算。
+- 属性词条按 `other.stage` 相乘，例如 `ds_map_add(other.data, "CRT", 3 * other.stage);`。
+- 想让存档合并 / `scr_effect_update` 也认这个层数，把 `stack` 同步成 `stage` 即可（`stack = stage;`）。
+
+#### 16.2.2 施加到玩家身上的 buff：`target` 是对象索引 5376
+
+`scr_effect_create(buff, duration, target, owner)` **对玩家有特殊处理**：若 `target` 是玩家，内部会把它替换成 **`5376`（`o_player` 的对象索引）**。因此：
+
+- 玩家 buff 的 `target` **不是实例 id，而是对象索引**；`target == 玩家实例` 永远为假。
+- 找"玩家身上的某个 buff"要用 `is_player(target)`，别用 `==`：
+
+```gml
+with (o_b_vareth_bane)
+{
+    if (is_player(target) && is_player(_owner))
+        _bane = id;
+}
+```
+
+- `scr_effect_create` 在 `target.HP < 1` 时直接返回 `-4`（**致死的那一击不会再挂上 debuff**），还会因免疫/抗性返回 `-4`。
+- 它会给 `duration` **+1**（除非 `target.buffs_is_change`），且 `max_duration` 是**每个实例从 Create 带出来的**。要精确回合或不同时长，创建后再覆盖：
+
+```gml
+var _b = scr_effect_create(o_b_colourbreak, 12, _enemy, _owner);
+if (instance_exists(_b))
+{
+    _b.duration = 12;
+    _b.max_duration = 12;   // 同一对象在别处是 5，这里按实例改成 12
+}
+```
 
 ### 16.3 技能树
 
@@ -1635,4 +1725,211 @@ gpu_set_blendmode(bm_normal);
 
 角色三条文本要插在 `scr_tableWriteMap(global.char_desc, ...)` 之后（它晚于 `char_name`、`class_name`），一次覆盖三张表。
 
-`global.language` 就是表列号：1 俄 / 2 英 / 3 中 / … / 11 日 / 12 韩，与 `ModLanguage` 枚举顺序一致（列号 = 枚举序号 + 1）。
+`global.language` 就是表列号：`0` 键列、`1` 俄 / `2` 英 / `3` 中 … `11` 日 / `12` 韩，列号 = `ModLanguage` 枚举序号 + 1；`scr_tableWriteMap` 直接拿它当下标。
+
+### 16.6 文本颜色标记（数值高亮）
+
+原生技能 / 增益描述里的数字、加成是带着颜色标记的，语法 `~tag~内容~/~`（`~/~` 收尾），`##` 分段，`#` 起一条列表项：
+
+```
+闪躲~lg~+25%~/~（每点灵敏额外~lg~+1%~/~）、行动声响~lg~-30%~/~（每点感知额外再~lg~-1%~/~）
+```
+
+这套标记由 `scr_colorText*` 系列解析，配色表在 `scr_colorTextColorsMap`：
+
+| 标签 | 颜色 | 典型用途 |
+|---|---|---|
+| `~w~` | 白 | **技能**描述里的中性数值（回合 / 范围 / 基础百分比）、关键词 |
+| `~sy~` | 浅褐 | **buff** 描述里的中性数值（回合 / 层数 / 几率） |
+| `~lg~` | 浅绿 | **有益**效果（即使数值带负号也绿，如"所受伤害-5%"） |
+| `~g~` / `~cg~` | 绿 / 亮绿 | 强正面 |
+| `~r~` | 暗红 | **有害**效果 |
+| `~lr~` / `~ur~` / `~dr~` | 浅红 / 亮红 / 深红 | 不同强度的负面 |
+| `~bl~` | 蓝 | 精力 / 法力 |
+| `~o~` | 橙 | 伤害类型、灼烧等 |
+| `~y~` / `~ly~` | 黄 / 浅黄 | 强调 |
+| `~p~` | 紫 | — |
+| `~gr~` / `~grm~` / `~grd~` | 灰阶 | 次要信息 |
+
+**颜色按"对玩家有利 / 有害"上，不按正负号**：原生的"所受伤害`~lg~-5%~/~"是绿的（减伤是好事），而"失手几率`~r~+33%~/~"是红的（对玩家是坏事）。
+
+> 技能描述的中性数值用 `~w~`、buff 描述用 `~sy~`——这是原版 `table_skills` 与 `table_effects` 的既定差异，照对应表抄即可。
+
+**坑**：
+
+- 描述写成纯文本（`"闪避 +25%"`）在游戏里就是白字，**不会自动高亮**；必须自己包成 `~lg~+25%~/~`。
+- 中文原生数字**不加空格**（写"向~w~4~/~格"，不是"向 4 格"）。
+- 标签只对走 `scr_colorText*` 渲染的文本生效；`global.skill_desc` / `global.buff_desc_text` 都走这条管线（表里原生条目本身就带标签），可放心用。
+- `/*...*/` 是本地化占位符（如 `/*Chance*/`、`/*Fire_Damage*/`），运行期替换成对应语言的词；自写描述直接写汉字即可，不用占位符。
+- 英文 / 俄文同样适用这套标签（与语言无关），换行也用 `##`。
+
+### 16.7 击杀触发：死亡检测、视野查询与传播
+
+"目标死亡时……"这类被动效果没有现成的可重编译死亡钩子，推荐用**你自己的 Step 观察者**盯住被标记的目标：
+
+> 这个 build 里 buff 的 `event_user` / Step **每个实例只触发一次**，所以按帧轮询的逻辑必须放在自建对象的 Step 里（参考 `o_colourbreak_watch`），不能指望 buff 事件。
+
+```gml
+// 目标死亡：实例已消失，或 HP 归零
+var _dead = !instance_exists(target_unit) || target_unit.HP <= 0;
+```
+
+**敌人与存活**：敌人是 `o_enemy` 的后代，`with (o_enemy)` 可遍历房间里所有敌人；存活判断用 `HP > 0`。
+
+**视野内的敌人**：
+
+```gml
+with (o_enemy)
+{
+    if (HP > 0
+        && scr_tile_distance(_owner, id) <= _owner.VSN   // 视野半径（VSN 属性）
+        && is_visible(id))                               // 雾 / 视线遮挡
+    {
+        // ...
+    }
+}
+```
+
+- `scr_tile_distance(a, b)` 返回切比雪夫距离 `max(|dx|, |dy|)`。
+- `is_visible(unit)` 走玩家雾图；没有雾时恒为真。
+- `VSN` 是单位的视野属性（`scr_atr_calc` 里 `clamp(..., 0, 15)`）。
+
+**传播 debuff + 每目标一个观察者**（防止重复触发导致伤害 / 层数翻倍）：
+
+```gml
+var _spread = scr_effect_create(o_b_colourbreak, 12, _enemy, _owner);
+
+if (instance_exists(_spread))
+{
+    _spread.duration = 12;
+    _spread.max_duration = 12;
+}
+
+var _watched = false;
+
+with (o_colourbreak_watch)
+{
+    if (target_unit == _enemy)
+        _watched = true;
+}
+
+if (!_watched)
+{
+    var _w = instance_create_depth(0, 0, 0, o_colourbreak_watch);
+    _w.target_unit = _enemy;
+    _w.owner_unit = _owner;
+    _w.last_hp = _enemy.HP;
+}
+```
+
+**坑**：
+
+- 造成击杀的那一下本身**不会**再挂 debuff（`scr_effect_create` 见 `HP < 1` 返回 `-4`）；要"死时身上有标记"，标记必须在这之前就挂上。
+- 传播后**继续击杀继续传播**：给每个被传播的目标都建观察者，它们的死亡会再走同一条路径。
+- 同一目标只留一个观察者；否则多份观察者会对同一次伤害 / 同一次死亡重复结算。
+
+## 17. 附录 E：五维属性与状态词条
+
+做角色、技能、buff、装备时最常查的两样东西：**五维属性**（谁影响谁）和**状态词条**（buff 的 `data` 表能写哪些键）。下表逐项对照 `table_attributes`、`scr_atr_calc` / `scr_atr_calc_combat` 核对而来，**键名大小写敏感**。
+
+### 17.1 五维属性
+
+| 键 | 英文 | 中文 | 在哪儿被用（实测） |
+|---|---|---|---|
+| `STR` | Strength | 力量 | 近战伤害 `4 + 0.33×STR`；兵器伤害源 `85 + 兵器 + 1.5×STR` |
+| `AGL` | Agility | 敏捷 | 反击几率 `-14 + 1.5×AGL`；失手 `35 - 1.5×AGL`；失误几率 `35 - 1.5×AGL`；开锁 `5 + AGL` |
+| `PRC` | Perception | 感知 | 准度 `65 + 1.5×PRC`；护甲穿透 `-15 + 1.5×PRC`；法咒准度/穿透 `+1.5×PRC` |
+| `Vitality` | Vitality | 活力 | 生命/恢复类公式的主体，如被动回血 `0.5×Vitality`、`desperate` 加成 `(Vitality/2)×…` |
+| `WIL` | Willpower | 意志 | 法术强度：15/20/25/30 每档 `+7.5%`；法力相关 |
+
+四个攻击/防御属性还各有 **15 / 20 / 25 / 30 的档位加成**（`_bonusSTR`、`_bonusAGL`…），写技能数值时可以按这个节奏做成长曲线。
+
+**命名坑**：敏捷是 `AGL`（不是 `AGI`），感知是 `PRC`（不是 `PER`），体质是 `Vitality`（不是 `VIT`）；同时 **`PRR` 是格挡几率**，和 `PRC` 只差一个字母。
+
+**在哪儿读**
+
+| 位置 | 内容 | 读法 |
+|---|---|---|
+| `gml_GlobalScript_table_attributes` | 键 + 13 语显示名 + 描述（486 行） | 列号 = `global.language` |
+| `global.attribute` / `attribute_desc` / `attribute_trade_hover` | 上表按当前语言切好的 map | `ds_map_find_value(global.attribute, "AGL")` |
+| 单位实例变量（`scr_atr_calc()` 每回合重算） | **最终值**（已含 buff，`clamp(2, 30)`） | `with (unit) { AGL }` |
+| `global.characterDataMap` | 角色档案：`LVL` / `XP` / `SP` / `AP` / `Morale` / `Sanity` … | `scr_atr("LVL")` |
+| `bSTR` / `bAGL` / `bPRC` / `bVIT` / `bWIL` | **基础值**（不含 buff） | `with (unit) { bAGL }` |
+
+**技能声明「受哪些属性影响」**（角色面板会据此标注）：
+
+```gml
+// o_skill_exiles_veil_Create.gml
+ds_list_add(attribute,
+    ds_map_find_value(global.attribute, "AGL"),
+    ds_map_find_value(global.attribute, "PRC"),
+    ds_map_find_value(global.attribute, "WIL"));
+```
+
+**在 buff 里按属性点做线性加成**（属性值从目标单位取，不要从 `global` 猜）：
+
+```gml
+// o_b_exiles_veil_Alarm_2.gml
+var _agl = 0;
+with (target) { _agl = AGL; }              // 目标单位的最终敏捷
+
+with (target)
+{
+    __dsDebuggerMapClear(other.data);      // 先清空，避免读档/重放叠加
+    ds_map_add(other.data, "EVS", 25 + _agl);          // 基础 25% + 每点敏捷 1%
+    ds_map_add(other.data, "Noise_Produced", -30);     // 负数 = 降低
+}
+```
+
+### 17.2 状态词条（buff `data` 的键）
+
+写法约定：
+
+- 数值一律按**百分比**，`+` 增益、`-` 减益；“越低越好”的键（`Noise_Produced`、`Miscast_Chance`）用负数表示下降。
+- 必须写在 buff 的 **`Alarm_2`**：创建后 1 帧执行一次，读档时 `loadSelfBuffs` 会重放它。只写 `Create` 的加成读档后必丢。
+- 消费链：`buff.data` → `scr_buff_param("KEY")` → `scr_atr_calc()` 得到单位派生属性 → 战斗/判定公式。
+
+**五维本身也能被词条临时改变**：`STR` / `AGL` / `PRC` / `Vitality` / `WIL` 都是合法键（最终值 `clamp(2, 30)`）。
+
+| 分类 | 键 | 中文 |
+|---|---|---|
+| 生命 / 精力 | `max_hp`、`max_mp`、`HP_turn`、`MP_turn`、`Health_Restoration`、`MP_Restoration`、`Healing_Received`、`Max_Energy_Threshold` | 上限、每回合回复、治疗效率 |
+| 伤害与命中 | `Weapon_Damage`（`_Main`/`_Off`）、`Hit_Chance`、`Armor_Piercing`、`Armor_Damage`、`Bodypart_Damage`、`Bonus_Range`、`range` | 兵器伤害、准度、护甲穿透/破坏、肢体伤害、距离 |
+| 暴击 | `CRT`（`_Main`/`_Off`）、`CRTD`（`_Main`/`_Off`）、`Crit_Avoid` | 暴击几率、暴击效果、暴击避免 |
+| 闪避 / 格挡 / 反击 / 失手 | `EVS`、`PRR`、`Block_Power`、`Block_Recovery`、`CTA`、`FMB` | 闪躲、格挡几率、格挡力量/恢复、反击、失手 |
+| 减伤 | `Damage_Received`、`Damage_Returned`、`DEF`、`Head_DEF`、`Body_DEF`、`Arms_DEF`、`Legs_DEF`、`Fortitude` | 所受伤害、反伤、总/部位防护、坚忍 |
+| 抗性 | `Physical_`/`Slashing_`/`Piercing_`/`Blunt_`/`Rending_`/`Fire_`/`Frost_`/`Shock_`/`Caustic_`/`Poison_`/`Arcane_`/`Unholy_`/`Sacred_`/`Psionic_` + `Resistance`；另有 `Magic_Resistance`、`Bleeding_Resistance`、`Stun_Resistance`、`Knockback_Resistance`、`Duration_Resistance` | 各类抗性、控制/位移抗性 |
+| 状态几率 | `Bleeding_Chance`、`Daze_Chance`、`Stun_Chance`、`Immob_Chance`、`Stagger_Chance`、`Knockback_Chance` | 出血、击晕、硬直、限制移动、破衡、击退 |
+| 法术 | `Magic_Power`、`Spell_Hit_Chance`、`Spell_Armor_Piercing`、`Miscast_Chance`、`Miracle_Chance`、`Miracle_Power`、`Pyromantic_`/`Cryomantic_`/`Electromantic_`/`Geomantic_`/`Psimantic_`/`Astromantic_`/`Venomantic_`/`Arcanistic_Power`、`Arcanistic_Distance` | 法强、法咒准度/穿透、失误、奇观、各系法力 |
+| 状态槽 | `Pain_Change`、`Pain_Limit`、`Pain_Resistance`、`Morale_Change`、`Morale_Factor`、`Sanity_Change`、`Fatigue_Change`、`Fatigue_Gain`、`Toxicity_Change`、`Hunger_Resistance`、`Immunity_Change` | 疼痛/斗志/神智/疲劳/迷醉/饥饿/免疫 |
+| 经济与杂项 | `Cooldown_Reduction`、`Skills_Energy_Cost`、`Spells_Energy_Cost`、`Abilities_Energy_Cost`、`Swimming_Cost`、`Trade_Favorability`、`Savvy`、`STL`（潜行）、`VSN`/`currentVSN`/`VSN_Bonus`（视野）、`Noise_Produced`（行动声响）、`Received_XP`、`Lifesteal`、`Manasteal`、`Charge_Distance`、`Avoiding_Trap` | 冷却、各类消耗、交易、开锁、潜行、视野、声响、经验、吸生/吸魔 |
+
+装备与物品用的是**同一套键名**，走 `scr_inv_param("KEY", item)`；所以 buff、装备、技能加成的键可以互相参照。
+
+### 17.3 全量清单怎么导出
+
+`table_attributes` 一共 486 行，第 0 列是键，第 1 列俄文、第 2 列英文、第 3 列中文……（列号 = `global.language`）。想自己查/生成对照表：
+
+```powershell
+$p = "C:\Users\<you>\Desktop\stoneshard-assets\codes\gml_GlobalScript_table_attributes.gml"
+$rows = (Get-Content $p)[2] -split '", "'
+foreach ($r in $rows) {
+    $c = $r -split ';'
+    if ([string]::IsNullOrWhiteSpace($c[0])) { continue }   # 分组注释行
+    "{0}`t{1}`t{2}" -f $c[0], $c[2], $c[3]                  # 键 / 英文 / 中文
+}
+```
+
+### 17.4 踩过的坑
+
+| # | 现象 | 原因 | 做法 |
+|---|---|---|---|
+| 1 | buff 的时长/层数被游戏改写 | `duration` / `max_duration` / `stack` / `first_turn` / `have_duration` 是 buff 基类变量 | 不要复用同名（曾用 `duration` 存毫秒，被 `scr_effect_create` 覆盖成回合数） |
+| 2 | 注入的文本不生效，界面露出原始键 | `scr_tableWriteMap` 先清空目标 map 再填充 | 文本注入排在该 map 自己的 `scr_tableWriteMap` 之后（§16.5） |
+| 3 | 读档后属性加成丢失 | 只写在 `Create`，读档由 `Alarm_2` 重放 | 属性/词条加成写在 `Alarm_2` |
+| 4 | 闪躲/格挡/反击/失手看串 | 四个缩写相近 | `EVS`=闪躲、`PRR`=格挡、`CTA`=反击、`FMB`=失手 |
+| 5 | 技能树连线编译报 `Expected assignment operator` | MSL 的 GML 编译器不支持对 `new` 实例调用方法 | 直接给成员赋值 `obj.pointsArray = [...]`（§16.3） |
+| 6 | 图标上不显示层数 | 层数绘制读 `stage`，不是 `stack` | 设 `stage` + `max_stage` + `have_stages = true`（§16.2.1） |
+| 7 | 玩家身上的 buff 找不到 / 比较恒为假 | 玩家 buff 的 `target` 是对象索引 5376，不是实例 | 用 `is_player(target)`，别用 `==`（§16.2.2） |
+| 8 | 致死一击不挂 debuff | `scr_effect_create` 遇 `HP < 1` 返回 `-4` | 击杀前先挂标记，用自建 Step 观察者触发（§16.7） |
+| 9 | 技能不可用时看不出禁用态 | 第 2 帧做成了“压暗的彩色图” | 第 2 帧做成去饱和灰阶（§16.1.1） |
